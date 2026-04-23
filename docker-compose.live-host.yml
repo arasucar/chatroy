@@ -8,6 +8,10 @@
 #   docker compose -f docker-compose.yml -f docker-compose.live-host.yml up -d
 
 services:
+  llm-hello:
+    ports:
+      - "127.0.0.1:${LLM_HELLO_HOST_PORT:-3005}:3000"
+
   web:
     ports:
       - "127.0.0.1:${WEB_HOST_PORT:-3004}:3000"

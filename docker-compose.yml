@@ -10,6 +10,29 @@
 # without losing Postgres/Ollama state.
 
 services:
+  llm-hello:
+    # Project 1 inference wrapper. Profile-gated so it does not alter the
+    # default Project 2/3 stack shape until explicitly requested.
+    profiles: ["project1"]
+    build:
+      context: ./apps/llm-hello
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:7b-instruct-q4_K_M}
+    expose:
+      - "3000"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:3000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [internal]
+
   web:
     # Phase 1 shell. Auth, data access, and chat still need to be wired.
     build:

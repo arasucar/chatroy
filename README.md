@@ -16,6 +16,7 @@ default host port bindings are safe.
 ```
 .
 ├── apps/
+│   ├── llm-hello/          # Project 1 streaming wrapper for Ollama
 │   ├── web/                 # Next.js app shell (Phase 1 scaffold)
 │   ├── web-placeholder/     # legacy nginx health target from Phase 0
 │   └── sandbox/             # Fastify code runner (Phase 5)
@@ -55,6 +56,7 @@ docker compose -f docker-compose.yml -f docker-compose.fresh-host.yml up -d
 This mode:
 
 - starts Caddy on public `80/443` using `Caddyfile.fresh-host`
+- keeps the Project 1 `llm-hello` endpoint on localhost only
 - publishes Postgres, Redis, and Ollama on localhost
 - matches the original Phase 0 assumptions
 
@@ -69,6 +71,7 @@ docker compose -f docker-compose.yml -f docker-compose.live-host.yml up -d
 This mode:
 
 - does not claim `80/443`
+- exposes the Project 1 `llm-hello` endpoint on `127.0.0.1:${LLM_HELLO_HOST_PORT:-3005}`
 - exposes only the web service on `127.0.0.1:${WEB_HOST_PORT:-3004}`
 - expects an existing reverse proxy, tunnel, or ingress layer to publish it
 
@@ -86,6 +89,52 @@ docker compose \
 
 Defaults in `docker-compose.admin-ports.yml` avoid the ports already occupied
 on the current host.
+
+## Project 1 — Local LLM hello world
+
+Project 1 is an opt-in compose profile. It adds a tiny localhost-only wrapper
+that forwards a streaming request to Ollama without changing public ingress or
+the Project 2 web app.
+
+### Bring up the Project 1 endpoint
+
+On a live host:
+
+```bash
+docker compose \
+  --profile project1 \
+  -f docker-compose.yml \
+  -f docker-compose.live-host.yml \
+  up -d ollama llm-hello
+```
+
+On a fresh host:
+
+```bash
+docker compose \
+  --profile project1 \
+  -f docker-compose.yml \
+  -f docker-compose.fresh-host.yml \
+  up -d ollama llm-hello
+```
+
+Then pull the chat model if it is not present yet:
+
+```bash
+./scripts/pull-models.sh
+```
+
+And verify end-to-end streaming:
+
+```bash
+curl -N -sS \
+  -H 'content-type: application/json' \
+  -d '{"prompt":"Say hello from Project 1 in one short sentence."}' \
+  http://127.0.0.1:${LLM_HELLO_HOST_PORT:-3005}/api/stream
+```
+
+`llm-hello` forwards Ollama's NDJSON stream unchanged, so each line is a chunk
+from the underlying generate call.
 
 ## First-time bring-up
 

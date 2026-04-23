@@ -6,6 +6,10 @@
 #   docker compose -f docker-compose.yml -f docker-compose.fresh-host.yml up -d
 
 services:
+  llm-hello:
+    ports:
+      - "127.0.0.1:${LLM_HELLO_HOST_PORT:-3005}:3000"
+
   caddy:
     image: caddy:2.8-alpine
     restart: unless-stopped
