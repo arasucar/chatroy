@@ -20,7 +20,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
     pool: "forks",
-    forks: { singleFork: true },
     alias: {
       "@roy/shared": path.resolve(__dirname, "../../packages/shared/src/index.ts"),
       "@": path.resolve(__dirname, "."),
