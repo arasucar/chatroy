@@ -125,6 +125,11 @@ And verify end-to-end streaming:
 `llm-hello` forwards Ollama's NDJSON stream unchanged, so each line is a chunk
 from the underlying generate call.
 
+For Project 1 only, `up-project1.sh` and `pull-models.sh` can run without a
+full `.env`; they inject parse-only defaults for the unrelated Postgres, Redis,
+and Caddy settings so Compose can target just `ollama` and `llm-hello`.
+Create a real `.env` before bringing up the wider stack.
+
 ## First-time bring-up
 
 These steps are for a new or disposable host.

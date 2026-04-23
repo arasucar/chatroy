@@ -8,6 +8,11 @@
 
 set -euo pipefail
 
+script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "${script_dir}/.." && pwd)"
+
+source "${script_dir}/project1-compose-env.sh"
+
 mode="${MODE:-live-host}"
 
 case "$mode" in
@@ -26,9 +31,10 @@ esac
 
 echo "==> Starting Project 1 in ${mode} mode"
 docker compose \
+  --project-directory "$repo_root" \
   --profile project1 \
-  -f docker-compose.yml \
-  -f "$overlay" \
+  -f "${repo_root}/docker-compose.yml" \
+  -f "${repo_root}/${overlay}" \
   up -d ollama llm-hello
 
 echo "==> Project 1 services requested:"

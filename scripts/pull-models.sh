@@ -14,15 +14,23 @@
 
 set -euo pipefail
 
+script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "${script_dir}/.." && pwd)"
+
+source "${script_dir}/project1-compose-env.sh"
+
 CHAT_MODEL="${OLLAMA_CHAT_MODEL:-qwen2.5:7b-instruct-q4_K_M}"
 EMBED_MODEL="${OLLAMA_EMBED_MODEL:-nomic-embed-text}"
 
 # Resolve the ollama container ID. `docker compose ps -q` is stable across
 # compose versions — no jq, no --format json shape drift (it changed from
 # array to NDJSON in newer compose releases).
-container=$(docker compose ps -q ollama 2>/dev/null || true)
+container=$(docker compose \
+  --project-directory "$repo_root" \
+  -f "${repo_root}/docker-compose.yml" \
+  ps -q ollama 2>/dev/null || true)
 if [[ -z "$container" ]]; then
-  echo "ollama container not running. Start it with: docker compose up -d ollama" >&2
+  echo "ollama container not running. Start it with: ./scripts/up-project1.sh" >&2
   exit 1
 fi
 
