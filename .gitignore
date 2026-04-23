@@ -43,3 +43,6 @@ ollama_models/
 uploads/
 
 # AI Docs (removed — docs/superpowers/specs/ and docs/*.md are tracked)
+
+# Git worktrees
+.worktrees/
