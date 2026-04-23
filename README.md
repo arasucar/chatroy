@@ -37,7 +37,8 @@ No AI, auth, or app code yet — that's Phase 1+. This phase exists so you can n
 git clone <your-remote> /opt/roy && cd /opt/roy
 # OR: scp -r ai-chatbot/ user@server:/opt/roy && ssh user@server && cd /opt/roy
 
-# 2. Install Docker + NVIDIA Container Toolkit + ufw rules.
+# 2. Install Docker + NVIDIA Container Toolkit + firewall rules.
+#    The script is additive on firewalls — it won't reset existing ufw config.
 sudo ./scripts/bootstrap-server.sh
 
 # 3. Configure secrets.
@@ -110,7 +111,12 @@ docker compose exec ollama ollama rm some-model
 Postgres data lives in the `postgres_data` volume. Nightly backups land in Phase 8; for now:
 
 ```bash
-docker compose exec postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup-$(date +%F).sql
+# POSTGRES_USER / POSTGRES_DB live inside the container (from compose env),
+# not in the host shell. Wrap in `sh -c '...'` with single quotes so the
+# variables expand in the container, not on the host.
+docker compose exec -T postgres sh -c \
+  'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > "backup-$(date +%F).sql"
 ```
 
 ### Teardown (destructive)

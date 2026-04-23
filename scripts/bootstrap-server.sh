@@ -8,6 +8,11 @@
 #
 # Idempotent: safe to re-run. Exits non-zero on any failure so you know.
 #
+# Firewall behavior: this script will NOT reset or reconfigure ufw if you
+# already have rules. It only ADDs allow rules for 80/443 (and OpenSSH if ufw
+# isn't active yet). If you need a custom SSH port or a different policy,
+# set it up yourself first — we'll leave it alone.
+#
 # Usage:
 #   sudo ./scripts/bootstrap-server.sh
 #
@@ -112,33 +117,44 @@ if ! docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi >
 fi
 echo "    OK — nvidia-smi works inside a container."
 
-# ── Firewall ────────────────────────────────────────────────────────────────
-# Only allow what the stack actually needs. Ollama/Postgres/Redis are bound
-# to 127.0.0.1 in docker-compose.yml so they're not reachable from the LAN
-# regardless of what ufw says, but better to be explicit.
-echo "==> Configuring ufw (SSH + HTTP/HTTPS only)"
-ufw --force reset
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 443/udp     # HTTP/3
-ufw --force enable
+# ── Firewall (non-destructive) ──────────────────────────────────────────────
+# We add the rules this stack needs; we never reset or reorder what's already
+# there. If ufw isn't active yet we enable it WITH an OpenSSH allow so a remote
+# session can't lock itself out. If ufw is already active with a custom SSH
+# policy (non-standard port, source allowlist, etc.) we leave it alone.
+echo "==> Configuring ufw (additive; existing rules preserved)"
+
+ufw_status=$(ufw status | head -n1 || true)
+
+if [[ "$ufw_status" == "Status: inactive" ]]; then
+  echo "    ufw is inactive — enabling with OpenSSH + HTTP/HTTPS rules"
+  ufw allow OpenSSH
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw allow 443/udp
+  ufw --force enable
+else
+  echo "    ufw is active — adding HTTP/HTTPS rules only (SSH left untouched)"
+  # `ufw allow` is idempotent: repeats print "Skipping adding existing rule".
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw allow 443/udp
+fi
+
 ufw status verbose
 
 # ── Post-install hint ───────────────────────────────────────────────────────
-cat <<'EOF'
+cat <<EOF
 
 ==> Done.
 
 Next steps:
   1. cp .env.example .env && edit .env
-  2. Make sure DNS for $DOMAIN points to this server (A/AAAA).
+  2. Make sure DNS for \$DOMAIN points to this server (A/AAAA).
   3. docker compose up -d
   4. ./scripts/pull-models.sh
-  5. curl https://$DOMAIN/healthz   # should print "ok"
+  5. curl https://\$DOMAIN/healthz   # should print "ok"
 
 If you want to run docker without sudo as your non-root user:
-  sudo usermod -aG docker $SUDO_USER   # then log out and back in
+  sudo usermod -aG docker ${SUDO_USER:-\$USER}   # then log out and back in
 EOF

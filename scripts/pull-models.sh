@@ -17,9 +17,10 @@ set -euo pipefail
 CHAT_MODEL="${OLLAMA_CHAT_MODEL:-qwen2.5:7b-instruct-q4_K_M}"
 EMBED_MODEL="${OLLAMA_EMBED_MODEL:-nomic-embed-text}"
 
-# Find the compose service name (default in docker-compose.yml is `ollama`,
-# with project prefix `roy` → container name `roy-ollama-1`).
-container=$(docker compose ps --format json ollama 2>/dev/null | jq -r '.Name // empty' | head -n1)
+# Resolve the ollama container ID. `docker compose ps -q` is stable across
+# compose versions — no jq, no --format json shape drift (it changed from
+# array to NDJSON in newer compose releases).
+container=$(docker compose ps -q ollama 2>/dev/null || true)
 if [[ -z "$container" ]]; then
   echo "ollama container not running. Start it with: docker compose up -d ollama" >&2
   exit 1
@@ -51,9 +52,17 @@ docker exec "$container" ollama pull "$EMBED_MODEL"
 echo "==> Installed models:"
 docker exec "$container" ollama list
 
-# Smoke test — should return in well under 5s on a warm GPU.
+# Smoke test — this IS the Phase 0 LLM exit criterion, so failure here means
+# the bring-up is not actually done. No `|| true`, no silent success.
 echo "==> Smoke test against $CHAT_MODEL"
 start=$(date +%s)
-docker exec "$container" ollama run "$CHAT_MODEL" "Say hello in one short sentence." || true
+if ! docker exec "$container" ollama run "$CHAT_MODEL" "Say hello in one short sentence."; then
+  echo "" >&2
+  echo "Smoke test FAILED — the model did not respond." >&2
+  echo "Debug with:" >&2
+  echo "  docker logs $container" >&2
+  echo "  docker exec $container nvidia-smi" >&2
+  exit 1
+fi
 end=$(date +%s)
-echo "    (took $((end - start))s)"
+echo "    smoke test OK (took $((end - start))s)"
