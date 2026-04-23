@@ -41,5 +41,4 @@ ollama_models/
 # Local uploads (Phase 4)
 uploads/
 
-# AI Docs
-docs/
+# AI Docs (removed — docs/superpowers/specs/ and docs/*.md are tracked)
