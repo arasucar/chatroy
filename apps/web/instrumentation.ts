@@ -21,7 +21,7 @@ export async function register() {
     passwordHash,
     role: "admin",
     displayName: "Admin",
-  });
+  }).onConflictDoNothing();
 
   console.log(`[bootstrap] Admin user created: ${email}`);
 }

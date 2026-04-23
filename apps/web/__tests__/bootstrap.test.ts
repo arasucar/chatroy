@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { cleanDb, testDb } from "./setup";
 import { schema } from "../lib/db/schema";
 
@@ -8,6 +8,7 @@ import { schema } from "../lib/db/schema";
 
 describe("admin bootstrap (instrumentation.register)", () => {
   beforeEach(async () => {
+    vi.resetModules();
     await cleanDb();
     process.env.NEXT_RUNTIME = "nodejs";
     process.env.ADMIN_EMAIL = "admin@test.local";
