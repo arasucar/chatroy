@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 import { unsealData } from "iron-session";
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/session";
