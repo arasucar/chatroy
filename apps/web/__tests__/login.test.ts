@@ -48,7 +48,7 @@ describe("loginAction", () => {
     fd.set("password", "password");
 
     const result = await loginAction(null, fd);
-    expect(result?.error).toBeTruthy();
+    expect(result?.error).toBe("Invalid email or password.");
   });
 
   it("returns error for wrong password", async () => {
@@ -64,7 +64,7 @@ describe("loginAction", () => {
     fd.set("password", "wrong-password");
 
     const result = await loginAction(null, fd);
-    expect(result?.error).toBeTruthy();
+    expect(result?.error).toBe("Invalid email or password.");
   });
 
   it("writes auth.login_failed audit log on wrong password", async () => {
@@ -87,6 +87,7 @@ describe("loginAction", () => {
   });
 
   it("creates session and audit log on valid credentials", async () => {
+    expect.hasAssertions();
     const hash = await bcrypt.hash("correct-password", 12);
     const [user] = await testDb.insert(schema.users).values({
       email: "user@test.local",
