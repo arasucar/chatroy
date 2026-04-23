@@ -1,4 +1,5 @@
-# Caddyfile for Phase 0. Reverse-proxies roy.rxstud.io to the web service.
+# Fresh-host Caddy config for Phase 0. Reverse-proxies roy.rxstud.io to the web
+# service.
 #
 # Caddy auto-issues a Let's Encrypt cert on first successful HTTP-01 challenge,
 # which means:

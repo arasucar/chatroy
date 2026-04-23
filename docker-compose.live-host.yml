@@ -1,0 +1,13 @@
+# Live-host overlay.
+#
+# Use this on a machine that is already serving other workloads. It exposes only
+# the web service on localhost so an existing reverse proxy, tunnel, or ingress
+# layer can publish it safely.
+#
+# Example:
+#   docker compose -f docker-compose.yml -f docker-compose.live-host.yml up -d
+
+services:
+  web:
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3004}:3000"

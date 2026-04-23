@@ -40,3 +40,6 @@ ollama_models/
 
 # Local uploads (Phase 4)
 uploads/
+
+# AI Docs
+docs/

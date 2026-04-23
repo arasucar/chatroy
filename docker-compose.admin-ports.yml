@@ -1,0 +1,25 @@
+# Optional localhost admin ports.
+#
+# Add this overlay only when you need direct host access to Postgres, Redis, or
+# Ollama from the server. Defaults avoid the ports already occupied on the
+# current host.
+#
+# Example:
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.live-host.yml \
+#     -f docker-compose.admin-ports.yml \
+#     up -d
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-16379}:6379"
+
+  ollama:
+    ports:
+      - "127.0.0.1:${OLLAMA_HOST_PORT:-11435}:11434"
