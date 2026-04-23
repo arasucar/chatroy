@@ -16,10 +16,7 @@ import {
 
 export const appRole = pgEnum("app_role", appRoleValues);
 export const inviteStatus = pgEnum("invite_status", inviteStatusValues);
-export const authAuditEvent = pgEnum(
-  "auth_audit_event",
-  authAuditEventValues,
-);
+export const authAuditEvent = pgEnum("auth_audit_event", authAuditEventValues);
 
 export const users = pgTable(
   "users",
@@ -29,15 +26,29 @@ export const users = pgTable(
     passwordHash: text("password_hash"),
     displayName: text("display_name"),
     role: appRole("role").notNull().default("member"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     emailUniqueIdx: uniqueIndex("users_email_unique_idx").on(table.email),
+  }),
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("sessions_user_id_idx").on(table.userId),
+    expiresAtIdx: index("sessions_expires_at_idx").on(table.expiresAt),
   }),
 );
 
@@ -58,9 +69,7 @@ export const invites = pgTable(
     }),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     codeUniqueIdx: uniqueIndex("invites_code_unique_idx").on(table.code),
@@ -86,9 +95,7 @@ export const authAuditLogs = pgTable(
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
     metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     eventIdx: index("auth_audit_logs_event_idx").on(table.event),
@@ -98,6 +105,7 @@ export const authAuditLogs = pgTable(
 
 export const schema = {
   users,
+  sessions,
   invites,
   authAuditLogs,
 };

@@ -8,6 +8,13 @@
       "when": 1776953135376,
       "tag": "0000_hot_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776958286581,
+      "tag": "0001_exotic_penance",
+      "breakpoints": true
     }
   ]
 }
