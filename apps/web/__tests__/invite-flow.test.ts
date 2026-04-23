@@ -136,7 +136,7 @@ describe("registerAction", () => {
 
     const fd = new FormData();
     fd.set("email", "existing@test.local");
-    fd.set("password", "pw");
+    fd.set("password", "securepassword123");
     fd.set("displayName", "User");
 
     const result = await registerAction("testcode123", null, fd);

@@ -44,6 +44,8 @@ export async function registerAction(
     return { error: "This invite was issued for a different email address." };
   }
 
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+
   const passwordHash = await bcrypt.hash(password, 12);
 
   const newUserId = await db.transaction(async (tx) => {

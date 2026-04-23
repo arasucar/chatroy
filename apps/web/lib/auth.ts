@@ -69,6 +69,11 @@ export async function requireSession(): Promise<{
     redirect("/login");
   }
 
+  if (session.userId !== userId) {
+    cookie.destroy();
+    redirect("/login");
+  }
+
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
 
   if (!user) {
