@@ -11,9 +11,9 @@
 
 services:
   web:
-    # Phase 0 placeholder. Swap the build context to apps/web in Phase 1.
+    # Phase 1 shell. Auth, data access, and chat still need to be wired.
     build:
-      context: ./apps/web-placeholder
+      context: ./apps/web
     restart: unless-stopped
     expose:
       - "3000"

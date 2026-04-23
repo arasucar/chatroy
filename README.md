@@ -1,24 +1,23 @@
 # roy — invite-only AI chatbot
 
-Phase 0 of the [implementation plan](./docs/implementation-plan.md): a reusable
-infrastructure baseline for Docker, Ollama, Postgres, Redis, and HTTPS ingress.
+Host-aware infrastructure for Docker, Ollama, Postgres, Redis, and HTTPS
+ingress, plus the first real `apps/web` scaffold.
 
-No AI, auth, or app code yet — that's Phase 1+.
+The app shell now exists, but auth, chat, and the database layer are still
+ahead.
 
 Important: the files in this repo currently reflect a `fresh-host` baseline more
 than a `live-host` deployment. On a machine that is already serving other
 Docker workloads, do not blindly run `scripts/bootstrap-server.sh` or assume the
-default host port bindings are safe. The updated
-[implementation plan](./docs/implementation-plan.md) describes the required
-live-host adjustments.
+default host port bindings are safe.
 
 ## Layout
 
 ```
 .
 ├── apps/
-│   ├── web/                 # Next.js app (Phase 1)
-│   ├── web-placeholder/     # nginx returning 200 on /healthz for Phase 0
+│   ├── web/                 # Next.js app shell (Phase 1 scaffold)
+│   ├── web-placeholder/     # legacy nginx health target from Phase 0
 │   └── sandbox/             # Fastify code runner (Phase 5)
 ├── packages/
 │   └── shared/              # shared types/schemas (Phase 1+)
@@ -235,6 +234,5 @@ This applies only to `fresh-host` mode.
 
 ## What's coming next
 
-- **Phase 1** — Next.js + Auth.js with invite-only registration and an admin dashboard. Replaces `web-placeholder` with the real app.
+- **Phase 1** — Complete the real app with Auth.js, invite-only registration, and an admin dashboard.
 - **Phase 2** — First streaming chat against Ollama.
-- See [implementation-plan.md](./docs/implementation-plan.md) for the full roadmap.

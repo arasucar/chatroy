@@ -1,0 +1,183 @@
+:root {
+  --bg: #f4efe5;
+  --surface: rgba(255, 251, 244, 0.84);
+  --surface-strong: #fffaf0;
+  --text: #1d1e20;
+  --muted: #5b5e66;
+  --border: rgba(29, 30, 32, 0.12);
+  --accent: #bb4d00;
+  --accent-soft: rgba(187, 77, 0, 0.14);
+  --shadow: 0 22px 60px rgba(41, 28, 8, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(187, 77, 0, 0.16), transparent 26%),
+    radial-gradient(circle at right 18%, rgba(33, 109, 92, 0.14), transparent 22%),
+    linear-gradient(180deg, #f8f2e7 0%, var(--bg) 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.shell {
+  min-height: 100vh;
+  padding: 32px 20px 64px;
+}
+
+.frame {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.hero,
+.card {
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.hero {
+  padding: 28px;
+  display: grid;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-family: "Menlo", "Monaco", monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.hero h1 {
+  margin: 0 0 12px;
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+}
+
+.lede {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.65;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  text-decoration: none;
+}
+
+.pill strong {
+  font-size: 0.95rem;
+}
+
+.pill span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.status-grid,
+.detail-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.card {
+  padding: 22px;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 10px;
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+.card p,
+.card li {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.service-list,
+.todo-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.service-list li + li,
+.todo-list li + li {
+  margin-top: 10px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: "Menlo", "Monaco", monospace;
+  font-size: 0.84rem;
+}
+
+.footnote {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+@media (min-width: 820px) {
+  .hero-grid,
+  .status-grid,
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-copy {
+    grid-column: 1 / -1;
+  }
+}
