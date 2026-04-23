@@ -44,26 +44,26 @@ export async function registerAction(
     return { error: "This invite was issued for a different email address." };
   }
 
-  const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
-  if (existing) return { error: "An account with this email already exists." };
-
   const passwordHash = await bcrypt.hash(password, 12);
 
-  let newUserId!: string;
+  const newUserId = await db.transaction(async (tx) => {
+    const existing = await tx.query.users.findFirst({ where: eq(users.email, email) });
+    if (existing) return null;
 
-  await db.transaction(async (tx) => {
     const [newUser] = await tx
       .insert(users)
       .values({ email, passwordHash, displayName, role: invite.role })
       .returning({ id: users.id });
 
-    newUserId = newUser.id;
-
     await tx
       .update(invites)
       .set({ status: "accepted", acceptedByUserId: newUser.id, acceptedAt: new Date() })
       .where(eq(invites.id, invite.id));
+
+    return newUser.id;
   });
+
+  if (!newUserId) return { error: "An account with this email already exists." };
 
   await writeAuditLog({ event: "user.created", targetUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
   await writeAuditLog({ event: "invite.accepted", actorUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
