@@ -1,0 +1,45 @@
+# Caddyfile for Phase 0. Reverse-proxies roy.rxstud.io to the web service.
+#
+# Caddy auto-issues a Let's Encrypt cert on first successful HTTP-01 challenge,
+# which means:
+#   1. Ports 80 and 443 must be reachable from the public internet.
+#   2. DNS for {$DOMAIN} must resolve to this server BEFORE `docker compose up`,
+#      otherwise the ACME challenge will fail and Caddy will serve on HTTP only.
+#
+# ACME_EMAIL is required by Let's Encrypt for expiry notifications.
+
+{
+    email {$ACME_EMAIL}
+    # Uncomment while testing to avoid the Let's Encrypt production rate limit
+    # (5 certs per domain per week). Staging certs aren't publicly trusted.
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Security headers. Tuned for Phase 0; revisit once the Next.js app needs
+    # inline scripts (CSP) or WebSockets.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "DENY"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        # Don't advertise the server.
+        -Server
+    }
+
+    # Pass the real client IP to the upstream app (Phase 1+ auth rate-limiting
+    # will want this).
+    reverse_proxy web:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
