@@ -1,4 +1,7 @@
 import {
+  customType,
+  doublePrecision,
+  integer,
   index,
   jsonb,
   pgEnum,
@@ -17,6 +20,44 @@ import {
 export const appRole = pgEnum("app_role", appRoleValues);
 export const inviteStatus = pgEnum("invite_status", inviteStatusValues);
 export const authAuditEvent = pgEnum("auth_audit_event", authAuditEventValues);
+export const chatMessageRole = pgEnum("chat_message_role", ["user", "assistant"]);
+export const runRoute = pgEnum("run_route", ["chat", "escalate"]);
+export const runProvider = pgEnum("run_provider", ["local", "remote"]);
+export const runStatus = pgEnum("run_status", [
+  "started",
+  "completed",
+  "blocked",
+  "failed",
+]);
+export const remoteProvider = pgEnum("remote_provider", ["openai"]);
+
+const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+}>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 768})`;
+  },
+  toDriver(value) {
+    return `[${value.join(",")}]`;
+  },
+  fromDriver(value) {
+    return value
+      .slice(1, -1)
+      .split(",")
+      .map((item) => Number.parseFloat(item));
+  },
+});
+
+export type MessageCitation = {
+  documentId: string;
+  documentTitle: string;
+  chunkId: string;
+  chunkIndex: number;
+  excerpt: string;
+  score: number;
+};
 
 export const users = pgTable(
   "users",
@@ -103,9 +144,148 @@ export const authAuditLogs = pgTable(
   }),
 );
 
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    title: text("title").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("conversations_user_id_idx").on(table.userId),
+    updatedAtIdx: index("conversations_updated_at_idx").on(table.updatedAt),
+  }),
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversationId: uuid("conversation_id")
+      .references(() => conversations.id, { onDelete: "cascade" })
+      .notNull(),
+    role: chatMessageRole("role").notNull(),
+    content: text("content").notNull(),
+    model: text("model"),
+    citations: jsonb("citations").$type<MessageCitation[] | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    conversationIdIdx: index("messages_conversation_id_idx").on(table.conversationId),
+    createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    sourceName: text("source_name"),
+    mimeType: text("mime_type"),
+    rawText: text("raw_text").notNull(),
+    uploadedByUserId: uuid("uploaded_by_user_id")
+      .references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    uploadedByUserIdIdx: index("documents_uploaded_by_user_id_idx").on(table.uploadedByUserId),
+    updatedAtIdx: index("documents_updated_at_idx").on(table.updatedAt),
+  }),
+);
+
+export const documentChunks = pgTable(
+  "document_chunks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    documentId: uuid("document_id")
+      .references(() => documents.id, { onDelete: "cascade" })
+      .notNull(),
+    chunkIndex: integer("chunk_index").notNull(),
+    content: text("content").notNull(),
+    embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    documentIdIdx: index("document_chunks_document_id_idx").on(table.documentId),
+    chunkIndexIdx: uniqueIndex("document_chunks_document_id_chunk_index_idx").on(
+      table.documentId,
+      table.chunkIndex,
+    ),
+  }),
+);
+
+export const runs = pgTable(
+  "runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversationId: uuid("conversation_id")
+      .references(() => conversations.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    route: runRoute("route").notNull(),
+    provider: runProvider("provider").notNull(),
+    status: runStatus("status").notNull().default("started"),
+    model: text("model"),
+    providerResponseId: text("provider_response_id"),
+    decisionReason: text("decision_reason"),
+    requestExcerpt: text("request_excerpt").notNull(),
+    responseExcerpt: text("response_excerpt"),
+    errorMessage: text("error_message"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    totalTokens: integer("total_tokens"),
+    estimatedCostUsd: doublePrecision("estimated_cost_usd"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => ({
+    conversationIdIdx: index("runs_conversation_id_idx").on(table.conversationId),
+    userIdIdx: index("runs_user_id_idx").on(table.userId),
+    createdAtIdx: index("runs_created_at_idx").on(table.createdAt),
+    statusIdx: index("runs_status_idx").on(table.status),
+  }),
+);
+
+export const userProviderKeys = pgTable(
+  "user_provider_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    provider: remoteProvider("provider").notNull(),
+    encryptedApiKey: text("encrypted_api_key").notNull(),
+    keyHint: text("key_hint").notNull(),
+    defaultModel: text("default_model").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userProviderUniqueIdx: uniqueIndex("user_provider_keys_user_provider_unique_idx").on(
+      table.userId,
+      table.provider,
+    ),
+    userIdIdx: index("user_provider_keys_user_id_idx").on(table.userId),
+  }),
+);
+
 export const schema = {
   users,
   sessions,
   invites,
   authAuditLogs,
+  conversations,
+  messages,
+  runs,
+  documents,
+  documentChunks,
+  userProviderKeys,
 };

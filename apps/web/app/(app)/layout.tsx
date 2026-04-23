@@ -25,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <span style={{ fontWeight: 600 }}>roy</span>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <span style={{ color: "var(--muted)", fontSize: "0.875rem" }}>{user.email}</span>
+          <a href="/settings" style={{ fontSize: "0.875rem" }}>Settings</a>
           {user.role === "admin" && (
             <a href="/admin/invites" style={{ fontSize: "0.875rem" }}>Admin</a>
           )}

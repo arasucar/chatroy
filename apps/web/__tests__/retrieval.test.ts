@@ -1,0 +1,64 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanDb, testDb } from "./setup";
+
+const unitVector = (value: number) =>
+  Array.from({ length: 768 }, (_, index) => (index === 0 ? value : 0));
+
+vi.mock("../lib/provider", () => ({
+  generateEmbeddings: vi.fn(),
+}));
+
+describe("retrieval helpers", () => {
+  beforeEach(async () => {
+    await cleanDb();
+    vi.resetModules();
+  });
+
+  it("splits documents into multiple retrieval chunks", async () => {
+    const { splitDocumentIntoChunks } = await import("../lib/retrieval");
+    const text = Array.from({ length: 520 }, (_, index) => `word${index}`).join(" ");
+    const chunks = splitDocumentIntoChunks(text);
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks[0].length).toBeGreaterThan(0);
+  });
+
+  it("indexes documents and retrieves cited chunks", async () => {
+    const { generateEmbeddings } = await import("../lib/provider");
+    vi.mocked(generateEmbeddings)
+      .mockImplementationOnce(async ({ texts }: { texts: string[] }) =>
+        texts.map((_, index) => unitVector(index === 0 ? 0.9 : 0.2)),
+      )
+      .mockResolvedValueOnce([unitVector(1)]);
+
+    const { createDocumentWithEmbeddings, listDocuments, searchDocs } = await import(
+      "../lib/retrieval"
+    );
+
+    const [user] = await testDb
+      .insert((await import("../lib/db/schema")).schema.users)
+      .values({ email: "retrieval@test.local", role: "admin" })
+      .returning();
+
+    const rawText = [
+      Array.from({ length: 240 }, () => "database").join(" "),
+      Array.from({ length: 240 }, () => "network").join(" "),
+    ].join("\n\n");
+
+    const document = await createDocumentWithEmbeddings({
+      title: "Ops Notes",
+      rawText,
+      uploadedByUserId: user.id,
+    });
+
+    expect(document.chunkCount).toBeGreaterThan(1);
+
+    const listed = await listDocuments();
+    expect(listed[0].title).toBe("Ops Notes");
+    expect(listed[0].chunkCount).toBe(document.chunkCount);
+
+    const citations = await searchDocs("database question");
+    expect(citations.length).toBeGreaterThan(0);
+    expect(citations[0].documentTitle).toBe("Ops Notes");
+  });
+});

@@ -48,16 +48,16 @@ export async function deleteSession(): Promise<void> {
   cookie.destroy();
 }
 
-export async function requireSession(): Promise<{
+export async function resolveSession(): Promise<{
   user: SessionUser;
   session: SessionRow;
-}> {
+} | null> {
   const h = await headers();
   const userId = h.get("x-user-id");
-  if (!userId) redirect("/login");
+  if (!userId) return null;
 
   const cookie = await getSession();
-  if (!cookie.sessionId) redirect("/login");
+  if (!cookie.sessionId) return null;
 
   const db = requireDb();
   const session = await db.query.sessions.findFirst({
@@ -66,22 +66,31 @@ export async function requireSession(): Promise<{
 
   if (!session) {
     cookie.destroy();
-    redirect("/login");
+    return null;
   }
 
   if (session.userId !== userId) {
     cookie.destroy();
-    redirect("/login");
+    return null;
   }
 
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
 
   if (!user) {
     cookie.destroy();
-    redirect("/login");
+    return null;
   }
 
   return { user, session };
+}
+
+export async function requireSession(): Promise<{
+  user: SessionUser;
+  session: SessionRow;
+}> {
+  const sessionResult = await resolveSession();
+  if (!sessionResult) redirect("/login");
+  return sessionResult;
 }
 
 export async function requireAdmin(): Promise<{

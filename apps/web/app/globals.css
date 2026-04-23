@@ -193,3 +193,246 @@ a {
     grid-column: 1 / -1;
   }
 }
+
+.chat-shell {
+  min-height: calc(100vh - 65px);
+  padding: 24px;
+}
+
+.chat-frame {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+
+.chat-sidebar,
+.chat-panel {
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.chat-sidebar {
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.chat-sidebar-head,
+.chat-panel-head,
+.chat-composer-foot,
+.chat-message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-title {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  line-height: 0.96;
+}
+
+.chat-conversation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.chat-doc-list,
+.chat-citation-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.chat-doc-item,
+.chat-citation-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 250, 240, 0.62);
+}
+
+.chat-doc-item span,
+.chat-citation-item span,
+.chat-doc-link,
+.chat-citation-label {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.chat-doc-link {
+  margin-top: 4px;
+  text-decoration: none;
+}
+
+.chat-conversation-item {
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 250, 240, 0.72);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+}
+
+.chat-conversation-item strong {
+  font-size: 0.95rem;
+}
+
+.chat-conversation-item span,
+.chat-kicker,
+.chat-empty-note,
+.chat-error,
+.chat-message-meta span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.chat-conversation-item.is-active {
+  border-color: rgba(187, 77, 0, 0.36);
+  background: var(--accent-soft);
+}
+
+.chat-panel {
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.chat-panel-head h2,
+.chat-empty-state h3 {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+.chat-panel-head h2 {
+  font-size: 1.35rem;
+}
+
+.chat-message-list {
+  min-height: 420px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.chat-message {
+  max-width: min(780px, 92%);
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.chat-message p,
+.chat-empty-state p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.chat-citation-label {
+  margin: 0;
+}
+
+.chat-message-user {
+  justify-self: end;
+  background: rgba(29, 30, 32, 0.06);
+}
+
+.chat-message-assistant {
+  justify-self: start;
+  background: rgba(255, 250, 240, 0.78);
+}
+
+.chat-empty-state {
+  border: 1px dashed var(--border);
+  border-radius: 24px;
+  padding: 28px;
+  background: rgba(255, 250, 240, 0.42);
+}
+
+.chat-composer {
+  display: grid;
+  gap: 12px;
+}
+
+.chat-input,
+.chat-primary-button,
+.chat-secondary-button {
+  font: inherit;
+}
+
+.chat-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 16px 18px;
+  background: rgba(255, 250, 240, 0.74);
+  color: var(--text);
+}
+
+.chat-primary-button,
+.chat-secondary-button {
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.chat-primary-button {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff7ef;
+}
+
+.chat-secondary-button {
+  border: 1px solid var(--border);
+  background: rgba(255, 250, 240, 0.74);
+  color: var(--text);
+}
+
+.chat-primary-button:disabled,
+.chat-secondary-button:disabled,
+.chat-conversation-item:disabled,
+.chat-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.chat-error {
+  margin: 0;
+}
+
+@media (min-width: 980px) {
+  .chat-frame {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}

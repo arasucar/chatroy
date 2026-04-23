@@ -34,6 +34,12 @@ afterAll(async () => {
 });
 
 export async function cleanDb() {
+  await testDb.delete(schema.userProviderKeys);
+  await testDb.delete(schema.runs);
+  await testDb.delete(schema.messages);
+  await testDb.delete(schema.conversations);
+  await testDb.delete(schema.documentChunks);
+  await testDb.delete(schema.documents);
   await testDb.delete(schema.authAuditLogs);
   await testDb.delete(schema.sessions);
   await testDb.delete(schema.invites);

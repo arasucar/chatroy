@@ -15,6 +15,34 @@
       "when": 1776958286581,
       "tag": "0001_exotic_penance",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776965756105,
+      "tag": "0002_polite_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776967950681,
+      "tag": "0003_lean_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776971249428,
+      "tag": "0004_steady_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776980906246,
+      "tag": "0005_long_runaways",
+      "breakpoints": true
     }
   ]
 }
