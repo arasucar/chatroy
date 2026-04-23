@@ -101,21 +101,13 @@ the Project 2 web app.
 On a live host:
 
 ```bash
-docker compose \
-  --profile project1 \
-  -f docker-compose.yml \
-  -f docker-compose.live-host.yml \
-  up -d ollama llm-hello
+./scripts/up-project1.sh
 ```
 
 On a fresh host:
 
 ```bash
-docker compose \
-  --profile project1 \
-  -f docker-compose.yml \
-  -f docker-compose.fresh-host.yml \
-  up -d ollama llm-hello
+MODE=fresh-host ./scripts/up-project1.sh
 ```
 
 Then pull the chat model if it is not present yet:
