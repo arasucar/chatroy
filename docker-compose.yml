@@ -34,13 +34,18 @@ services:
     networks: [internal]
 
   web:
-    # Phase 1 shell. Auth, data access, and chat still need to be wired.
+    # Phase 2: auth, sessions, rate limiting wired.
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL must be set}
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     expose:
       - "3000"
     healthcheck:
