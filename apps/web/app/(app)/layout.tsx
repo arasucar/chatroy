@@ -1,21 +1,16 @@
 import { redirect } from "next/navigation";
 import { requireSession, deleteSession } from "@/lib/auth";
-import { getSession } from "@/lib/session";
 import { writeAuditLog } from "@/lib/audit";
-
-async function logoutAction() {
-  "use server";
-  const cookie = await getSession();
-  const userId = cookie.userId;
-  await deleteSession();
-  if (userId) {
-    await writeAuditLog({ event: "auth.logout", actorUserId: userId });
-  }
-  redirect("/login");
-}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireSession();
+
+  async function logoutAction() {
+    "use server";
+    await deleteSession();
+    await writeAuditLog({ event: "auth.logout", actorUserId: user.id });
+    redirect("/login");
+  }
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>

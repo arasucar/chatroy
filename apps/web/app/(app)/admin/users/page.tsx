@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { asc } from "drizzle-orm";
@@ -6,7 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 
 export default async function AdminUsersPage() {
   const adminResult = await requireAdmin();
-  if (!adminResult) return null;
+  if (!adminResult) redirect("/dashboard");
   const { user: currentUser } = adminResult;
 
   const db = requireDb();
