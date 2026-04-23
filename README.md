@@ -127,10 +127,7 @@ Then pull the chat model if it is not present yet:
 And verify end-to-end streaming:
 
 ```bash
-curl -N -sS \
-  -H 'content-type: application/json' \
-  -d '{"prompt":"Say hello from Project 1 in one short sentence."}' \
-  http://127.0.0.1:${LLM_HELLO_HOST_PORT:-3005}/api/stream
+./scripts/smoke-project1.sh
 ```
 
 `llm-hello` forwards Ollama's NDJSON stream unchanged, so each line is a chunk
