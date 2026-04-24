@@ -1,12 +1,17 @@
-import { resolveSession } from "@/lib/auth";
+import { hasRecentStepUp, resolveSession } from "@/lib/auth";
 import { createPendingTurn, saveAssistantReply } from "@/lib/chat";
 import type { MessageCitation } from "@/lib/db/schema";
-import { classifyChatPrompt } from "@/lib/mediator";
+import { logger } from "@/lib/logger";
+import { classifyChatPrompt, classifyScriptIntent } from "@/lib/mediator";
 import { startLocalChatStream, startOpenAIResponsesStream } from "@/lib/provider";
 import { buildRetrievalSystemPrompt, searchDocs } from "@/lib/retrieval";
 import { estimateOpenAICostUsd } from "@/lib/remote-cost";
 import { createRun, finishRun } from "@/lib/runs";
+import { webSearch } from "@/lib/search";
+import { executeScript, getScriptById, listEnabledScripts } from "@/lib/scripts";
 import { getDecryptedUserProviderKey } from "@/lib/user-provider-keys";
+
+const SCRIPT_ROUTING_ENABLED = process.env.SCRIPT_ROUTING_ENABLED !== "false";
 
 const encoder = new TextEncoder();
 
@@ -44,6 +49,7 @@ function buildProviderMessages(
 }
 
 export async function POST(request: Request) {
+  const startMs = Date.now();
   const session = await resolveSession();
   if (!session) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
@@ -65,6 +71,52 @@ export async function POST(request: Request) {
     return Response.json({ error: "A non-empty `prompt` field is required." }, { status: 400 });
   }
 
+  const decision = classifyChatPrompt(prompt);
+
+  const searchGated =
+    decision.route === "chat" && decision.tools.includes("search")
+      ? session.user.searchEnabled && process.env.TAVILY_API_KEY
+        ? decision
+        : {
+            route: "escalate" as const,
+            tools: [] as [],
+            provider: "remote" as const,
+            model: null,
+            reason: "Search requires an enabled user allowlist and a configured Tavily API key.",
+          }
+      : decision;
+
+  const effectiveDecision =
+    SCRIPT_ROUTING_ENABLED && searchGated.route === "chat" && searchGated.tools.length === 0
+      ? await (async () => {
+          const enabledScripts = await listEnabledScripts().catch(() => []);
+          if (enabledScripts.length === 0) return searchGated;
+          return classifyScriptIntent(prompt, enabledScripts).catch(() => searchGated);
+        })()
+      : searchGated;
+
+  let resolvedScript =
+    effectiveDecision.route === "script"
+      ? await getScriptById(effectiveDecision.script.id)
+      : null;
+
+  if (effectiveDecision.route === "script") {
+    if (!resolvedScript) {
+      return Response.json({ error: "Script not found." }, { status: 404 });
+    }
+
+    if (resolvedScript.requiresStepUp && !(await hasRecentStepUp())) {
+      return Response.json(
+        {
+          error: `Script "${resolvedScript.name}" requires password confirmation before it can run.`,
+          stepUpRequired: true,
+          scriptName: resolvedScript.name,
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   const prepared = await createPendingTurn(
     session.user.id,
     prompt,
@@ -75,20 +127,81 @@ export async function POST(request: Request) {
     return Response.json({ error: "Conversation not found." }, { status: 404 });
   }
 
-  const decision = classifyChatPrompt(prompt);
+  let citations: MessageCitation[] = [];
+  const toolsUsed: string[] = [];
+  if (payload.useRetrieval) {
+    try {
+      const retrievalResults = await searchDocs(prompt);
+      citations = retrievalResults;
+      if (retrievalResults.length > 0) toolsUsed.push("retrieval");
+    } catch {
+      citations = [];
+    }
+  }
+
+  logger.info("chat.classified", {
+    userId: session.user.id,
+    route: effectiveDecision.route,
+    tools: effectiveDecision.tools,
+    ...(effectiveDecision.route === "script" && { scriptId: effectiveDecision.script.id, scriptName: effectiveDecision.script.name }),
+  });
+
   const run = await createRun({
     conversationId: prepared.conversation.id,
     userId: session.user.id,
-    decision,
+    decision: effectiveDecision,
     prompt,
   });
 
-  let citations: MessageCitation[] = [];
-  if (payload.useRetrieval) {
+  if (effectiveDecision.route === "script") {
+    let scriptRun: Awaited<ReturnType<typeof executeScript>>;
     try {
-      citations = await searchDocs(prompt);
-    } catch {
-      citations = [];
+      scriptRun = await executeScript({
+        script: resolvedScript!,
+        params: effectiveDecision.script.params,
+        invokedByUserId: session.user.id,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Script execution failed.";
+      await finishRun(run.id, { status: "failed", errorMessage: message, toolsUsed: ["script"] });
+      return Response.json({ error: message, conversation: conversationPayload(prepared.conversation) }, { status: 500 });
+    }
+
+    const lines: string[] = [`Ran script: **${effectiveDecision.script.name}**`];
+    if (scriptRun.stdout?.trim()) lines.push("", "```", scriptRun.stdout.trim(), "```");
+    if (scriptRun.stderr?.trim()) lines.push("", "**stderr:**", "```", scriptRun.stderr.trim(), "```");
+    lines.push("", `Exit code: ${scriptRun.exitCode ?? "?"}`);
+    const assistantReply = lines.join("\n");
+
+    await saveAssistantReply(prepared.conversation.id, assistantReply, effectiveDecision.model, []);
+    await finishRun(run.id, { status: "completed", response: assistantReply, toolsUsed: ["script"] });
+    logger.info("chat.completed", { runId: run.id, route: "script", status: scriptRun.status, exitCode: scriptRun.exitCode, durationMs: Date.now() - startMs });
+
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(streamEvent({ type: "conversation", conversation: conversationPayload(prepared.conversation) }));
+          controller.enqueue(streamEvent({ type: "model", provider: "local", model: effectiveDecision.model }));
+          controller.enqueue(streamEvent({ type: "delta", content: assistantReply }));
+          controller.enqueue(streamEvent({ type: "done", conversationId: prepared.conversation.id }));
+          controller.close();
+        },
+      }),
+      {
+        headers: {
+          "cache-control": "no-store",
+          "content-type": "application/x-ndjson; charset=utf-8",
+          "x-llm-model": `local:${effectiveDecision.model}`,
+        },
+      },
+    );
+  }
+
+  if (effectiveDecision.route === "chat" && effectiveDecision.tools.includes("search")) {
+    const searchResults = await webSearch(prompt);
+    if (searchResults.length > 0) {
+      citations = [...citations, ...searchResults];
+      toolsUsed.push("search");
     }
   }
 
@@ -98,14 +211,15 @@ export async function POST(request: Request) {
   }));
   const providerMessages = buildProviderMessages(baseMessages, citations);
 
-  if (decision.route === "escalate") {
+  if (effectiveDecision.route === "escalate") {
     const openaiKey = await getDecryptedUserProviderKey(session.user.id, "openai");
     if (!openaiKey) {
-      const assistantReply = buildEscalationMessage(decision.reason);
+      const assistantReply = buildEscalationMessage(effectiveDecision.reason);
       await saveAssistantReply(prepared.conversation.id, assistantReply, null, citations);
       await finishRun(run.id, {
         status: "blocked",
         response: assistantReply,
+        toolsUsed,
       });
 
       return new Response(
@@ -156,6 +270,7 @@ export async function POST(request: Request) {
       await finishRun(run.id, {
         status: "failed",
         errorMessage: error instanceof Error ? error.message : "Failed to reach OpenAI.",
+        toolsUsed,
       });
       return Response.json(
         {
@@ -171,6 +286,7 @@ export async function POST(request: Request) {
       await finishRun(run.id, {
         status: "failed",
         errorMessage: message || "OpenAI response request failed.",
+        toolsUsed,
       });
       return Response.json(
         {
@@ -217,6 +333,7 @@ export async function POST(request: Request) {
             outputTokens,
             totalTokens,
             estimatedCostUsd: costUsd,
+            toolsUsed,
           });
         };
 
@@ -370,7 +487,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const model = decision.model;
+  const model = effectiveDecision.model;
 
   let upstream: Response;
   try {
@@ -382,6 +499,7 @@ export async function POST(request: Request) {
     await finishRun(run.id, {
       status: "failed",
       errorMessage: error instanceof Error ? error.message : "Failed to reach Ollama.",
+      toolsUsed,
     });
     return Response.json(
       {
@@ -397,6 +515,7 @@ export async function POST(request: Request) {
     await finishRun(run.id, {
       status: "failed",
       errorMessage: message || "Ollama chat request failed.",
+      toolsUsed,
     });
     return Response.json(
       {
@@ -432,10 +551,8 @@ export async function POST(request: Request) {
 
         if (chunk.done && !saved) {
           await saveAssistantReply(prepared.conversation.id, assistantReply, model, citations);
-          await finishRun(run.id, {
-            status: "completed",
-            response: assistantReply,
-          });
+          await finishRun(run.id, { status: "completed", response: assistantReply, toolsUsed });
+          logger.info("chat.completed", { runId: run.id, route: "chat", provider: "local", durationMs: Date.now() - startMs });
           saved = true;
           if (citations.length > 0) {
             controller.enqueue(streamEvent({ type: "citations", citations }));
@@ -483,6 +600,7 @@ export async function POST(request: Request) {
           await finishRun(run.id, {
             status: "completed",
             response: assistantReply,
+            toolsUsed,
           });
           if (citations.length > 0) {
             controller.enqueue(streamEvent({ type: "citations", citations }));
@@ -495,10 +613,13 @@ export async function POST(request: Request) {
         if (!saved) {
           await saveAssistantReply(prepared.conversation.id, assistantReply, model, citations);
         }
+        const errorMessage = error instanceof Error ? error.message : "Chat stream failed.";
+        logger.error("chat.failed", { runId: run.id, route: "chat", provider: "local", error: errorMessage, durationMs: Date.now() - startMs });
         await finishRun(run.id, {
           status: "failed",
           response: assistantReply,
           errorMessage: error instanceof Error ? error.message : "Chat stream failed.",
+          toolsUsed,
         });
 
         controller.enqueue(

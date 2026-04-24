@@ -1,0 +1,1 @@
+ALTER TABLE "scripts" ADD COLUMN "requires_step_up" boolean DEFAULT false NOT NULL;

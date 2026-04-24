@@ -3,6 +3,7 @@ import { requireDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { asc } from "drizzle-orm";
 import { RoleToggle } from "./role-toggle";
+import { SearchToggle } from "./search-toggle";
 import { requireAdmin } from "@/lib/auth";
 
 export default async function AdminUsersPage() {
@@ -22,6 +23,7 @@ export default async function AdminUsersPage() {
             <th style={{ padding: "0.5rem" }}>Email</th>
             <th style={{ padding: "0.5rem" }}>Display name</th>
             <th style={{ padding: "0.5rem" }}>Role</th>
+            <th style={{ padding: "0.5rem" }}>Search</th>
             <th style={{ padding: "0.5rem" }}>Joined</th>
             <th style={{ padding: "0.5rem" }}></th>
           </tr>
@@ -32,10 +34,14 @@ export default async function AdminUsersPage() {
               <td style={{ padding: "0.5rem" }}>{u.email}</td>
               <td style={{ padding: "0.5rem" }}>{u.displayName ?? "—"}</td>
               <td style={{ padding: "0.5rem" }}>{u.role}</td>
+              <td style={{ padding: "0.5rem" }}>{u.searchEnabled ? "on" : "off"}</td>
               <td style={{ padding: "0.5rem" }}>{u.createdAt.toLocaleDateString()}</td>
               <td style={{ padding: "0.5rem" }}>
                 {u.id !== currentUser.id && (
-                  <RoleToggle userId={u.id} currentRole={u.role} />
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <RoleToggle userId={u.id} currentRole={u.role} />
+                    <SearchToggle userId={u.id} searchEnabled={u.searchEnabled} />
+                  </div>
                 )}
               </td>
             </tr>

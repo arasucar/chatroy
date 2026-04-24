@@ -16,9 +16,9 @@ const services = [
 ];
 
 const nextUp = [
-  "Add web search as the next controlled external tool.",
-  "Keep per-tool allowlists explicit instead of broadening access silently.",
-  "Preserve the current two-route Project 2 classifier while extending tool visibility.",
+  "Project 3 now includes registry-backed manual script runs for admins.",
+  "Next product frontier: the third classifier route and script selection from the registry.",
+  "Next operational frontier: Phase 8 visibility, backups, and restore drills.",
 ];
 
 export default function HomePage() {
@@ -26,23 +26,27 @@ export default function HomePage() {
     <main className="shell">
       <div className="frame">
         <section className="hero">
-          <p className="eyebrow">roy / phase 6 provider-aware app</p>
+          <p className="eyebrow">roy / project 3 started</p>
           <div className="hero-grid">
             <div className="hero-copy">
-              <h1>The private app is up. Remote fallback is live.</h1>
+              <h1>Project 2 is done. Project 3 has started.</h1>
               <p className="lede">
                 Invite-only auth, admin bootstrap, invite acceptance, role checks,
                 rate limiting, authenticated local chat, persisted mediator
-                runs, document ingestion, cited retrieval, and explicit OpenAI
-                fallback are wired. The next boundary is controlled external tools.
+                runs, document ingestion, cited retrieval, explicit OpenAI
+                fallback, and controlled web search are wired. The next product
+                layer is the script registry, manual runner, and eventually
+                script-aware routing.
               </p>
             </div>
             <div className="card">
               <h2>What this proves</h2>
               <p>
                 The app now has a real private chat surface, a deterministic
-                mediator boundary, an admin-visible run log, cited retrieval, and
-                user-owned remote provider fallback with visible cost tracking.
+                mediator boundary, an admin-visible run log, cited retrieval,
+                remote fallback, and controlled external search. The remaining
+                work is deeper Project 3 capability and stronger operations, not
+                missing Project 2 plumbing.
               </p>
               <div className="badge-row">
                 <span className="badge">Invite-only</span>
@@ -50,6 +54,7 @@ export default function HomePage() {
                 <span className="badge">Retrieval</span>
                 <span className="badge">Remote fallback</span>
                 <span className="badge">Cost tracking</span>
+                <span className="badge">Web search</span>
               </div>
             </div>
             <div className="hero-actions">
@@ -68,6 +73,10 @@ export default function HomePage() {
               <a className="pill" href="/settings">
                 <strong>/settings</strong>
                 <span>save your remote API key</span>
+              </a>
+              <a className="pill" href="/admin/scripts">
+                <strong>/admin/scripts</strong>
+                <span>register script metadata</span>
               </a>
               <a className="pill" href="/healthz">
                 <strong>/healthz</strong>
@@ -114,22 +123,22 @@ export default function HomePage() {
           <article className="card">
             <h3>Current boundary</h3>
             <p>
-              Auth, local chat, narrow mediation, retrieval, and OpenAI fallback
-              are in place. What does not exist yet is broader external tool
-              access such as web search.
+              Project 2 scope is in place and Project 3 has begun with script
+              registry authoring plus manual admin runs. What does not exist yet
+              is the `script` classifier route or model-driven script selection.
             </p>
           </article>
         </section>
 
         <section className="status-grid">
           <article className="card">
-            <h2>Data model carried into Phase 6</h2>
+            <h2>Data model carried into Project 3</h2>
             <p>
               Drizzle now defines the private app boundary end to end: users,
               sessions, invites, conversations, messages, auth audit logs,
               mediator runs, documents, document chunks, and encrypted per-user
-              provider keys. Those tables back the live app instead of placeholder
-              scaffolding.
+              provider keys. Project 3 now adds both the script registry and
+              persisted script run records for admin-triggered execution.
             </p>
             <div className="badge-row">
               <span className="badge">users</span>
@@ -141,6 +150,8 @@ export default function HomePage() {
               <span className="badge">documents</span>
               <span className="badge">document_chunks</span>
               <span className="badge">user_provider_keys</span>
+              <span className="badge">scripts</span>
+              <span className="badge">script_runs</span>
               <span className="badge">auth_audit_logs</span>
             </div>
           </article>
@@ -174,8 +185,8 @@ export default function HomePage() {
         </section>
 
         <p className="footnote">
-          If this page is up, the repo has moved past provider fallback plumbing
-          and into controlled external tool work.
+          If this page is up, Project 2 is complete and Project 3 has begun with
+          the script registry plus manual admin-run execution layer.
         </p>
       </div>
     </main>

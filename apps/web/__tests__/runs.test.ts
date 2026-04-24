@@ -23,6 +23,7 @@ describe("run logging", () => {
       userId: user.id,
       decision: {
         route: "chat",
+        tools: [],
         provider: "local",
         model: "qwen2.5:7b-instruct-q4_K_M",
         reason: "The request fits the local chat path.",
@@ -39,6 +40,7 @@ describe("run logging", () => {
       userId: user.id,
       decision: {
         route: "escalate",
+        tools: [],
         provider: "remote",
         model: null,
         reason: "The request depends on time-sensitive information.",
@@ -53,6 +55,7 @@ describe("run logging", () => {
       outputTokens: 300,
       totalTokens: 1500,
       estimatedCostUsd: 0.0009,
+      toolsUsed: ["search"],
     });
 
     const runs = await listRecentRuns();
@@ -62,6 +65,7 @@ describe("run logging", () => {
     expect(runs[0].providerResponseId).toBe("resp_123");
     expect(runs[0].totalTokens).toBe(1500);
     expect(runs[0].estimatedCostUsd).toBeCloseTo(0.0009);
+    expect(runs[0].toolsUsed).toEqual(["search"]);
     expect(runs[1].route).toBe("chat");
     expect(runs[1].status).toBe("completed");
   });

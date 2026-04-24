@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type ConversationSummary = {
   id: string;
@@ -27,6 +29,8 @@ type ChatMessage = {
     chunkIndex: number;
     excerpt: string;
     score: number;
+    source?: "retrieval" | "search";
+    url?: string;
   }> | null;
   createdAt: string;
 };
@@ -108,6 +112,12 @@ export function ChatWorkspace({
   const [pending, setPending] = useState(false);
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stepUpRequest, setStepUpRequest] = useState<{
+    prompt: string;
+    scriptName: string;
+  } | null>(null);
+  const [stepUpPassword, setStepUpPassword] = useState("");
+  const [stepUpPending, setStepUpPending] = useState(false);
 
   async function loadConversation(conversationId: string, silent = false): Promise<void> {
     if (!silent) {
@@ -135,18 +145,20 @@ export function ChatWorkspace({
   }
 
   function startNewConversation() {
-    if (pending) return;
+    if (pending || stepUpPending) return;
     setCurrentConversationId(null);
     setCurrentConversation(null);
     setMessages([]);
     setError(null);
+    setStepUpRequest(null);
+    setStepUpPassword("");
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const submittedPrompt = prompt.trim();
-    if (!submittedPrompt || pending) return;
+  async function submitPrompt(
+    submittedPrompt: string,
+    options?: { allowDuringStepUp?: boolean },
+  ) {
+    if (!submittedPrompt || pending || (stepUpPending && !options?.allowDuringStepUp)) return;
 
     const userMessage: ChatMessage = {
       id: `local-user-${Date.now()}`,
@@ -165,6 +177,7 @@ export function ChatWorkspace({
     setPrompt("");
     setPending(true);
     setError(null);
+    setStepUpRequest(null);
     setMessages((current) => [...current, userMessage]);
 
     try {
@@ -184,7 +197,19 @@ export function ChatWorkspace({
         const payload = (await response.json()) as {
           error?: string;
           conversation?: ConversationSummary;
+          stepUpRequired?: boolean;
+          scriptName?: string;
         };
+
+        if (payload.stepUpRequired) {
+          setMessages((current) => current.filter((message) => message.id !== userMessage.id));
+          setPrompt(submittedPrompt);
+          setStepUpRequest({
+            prompt: submittedPrompt,
+            scriptName: payload.scriptName ?? "this script",
+          });
+          return;
+        }
 
         if (payload.conversation) {
           activeConversationId = payload.conversation.id;
@@ -309,6 +334,45 @@ export function ChatWorkspace({
       setError(error instanceof Error ? error.message : "Chat request failed.");
     } finally {
       setPending(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitPrompt(prompt.trim());
+  }
+
+  async function handleStepUpSubmit() {
+    if (!stepUpRequest || !stepUpPassword.trim() || stepUpPending) return;
+
+    setStepUpPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/step-up", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ password: stepUpPassword }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+      }
+
+      const pendingPrompt = stepUpRequest.prompt;
+      setStepUpPassword("");
+      setStepUpRequest(null);
+      await submitPrompt(pendingPrompt, { allowDuringStepUp: true });
+    } catch (stepUpError) {
+      setError(
+        stepUpError instanceof Error
+          ? stepUpError.message
+          : "Password confirmation failed.",
+      );
+    } finally {
+      setStepUpPending(false);
     }
   }
 
@@ -445,7 +509,9 @@ export function ChatWorkspace({
                     {message.model ? ` · ${message.model}` : ""}
                   </span>
                 </div>
-                <p>{message.content}</p>
+                <div className="chat-message-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                </div>
                 {message.citations && message.citations.length > 0 && (
                   <div className="chat-citation-list">
                     <p className="chat-citation-label">Retrieved sources</p>
@@ -454,7 +520,15 @@ export function ChatWorkspace({
                         <strong>
                           [{index + 1}] {citation.documentTitle}
                         </strong>
+                        {citation.source === "search" && (
+                          <span className="chat-citation-badge">Web</span>
+                        )}
                         <span>{citation.excerpt}</span>
+                        {citation.url && (
+                          <a className="chat-citation-link" href={citation.url} rel="noreferrer" target="_blank">
+                            {citation.url}
+                          </a>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -466,9 +540,73 @@ export function ChatWorkspace({
 
         <form className="chat-composer" onSubmit={handleSubmit}>
           {error && <p className="chat-error">{error}</p>}
+          {stepUpRequest && (
+            <div
+              style={{
+                display: "grid",
+                gap: "0.75rem",
+                padding: "0.9rem 1rem",
+                borderRadius: 16,
+                border: "1px solid var(--border)",
+                background: "rgba(255, 245, 235, 0.9)",
+              }}
+            >
+              <div>
+                <p className="chat-kicker">Sensitive script</p>
+                <strong>{stepUpRequest.scriptName}</strong>
+                <p className="chat-empty-note" style={{ marginTop: "0.35rem" }}>
+                  Confirm your password to run this script, then the original prompt will retry automatically.
+                </p>
+              </div>
+              <div
+                style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}
+              >
+                <input
+                  type="password"
+                  value={stepUpPassword}
+                  onChange={(event) => setStepUpPassword(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleStepUpSubmit();
+                    }
+                  }}
+                  placeholder="Current password"
+                  autoComplete="current-password"
+                  style={{
+                    flex: "1 1 240px",
+                    minWidth: 220,
+                    padding: "0.75rem 0.9rem",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    background: "rgba(255,255,255,0.9)",
+                  }}
+                />
+                <button
+                  className="chat-primary-button"
+                  disabled={stepUpPending || !stepUpPassword.trim()}
+                  onClick={() => void handleStepUpSubmit()}
+                  type="button"
+                >
+                  {stepUpPending ? "Confirming..." : "Confirm and run"}
+                </button>
+                <button
+                  className="chat-secondary-button"
+                  disabled={stepUpPending}
+                  onClick={() => {
+                    setStepUpRequest(null);
+                    setStepUpPassword("");
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <textarea
             className="chat-input"
-            disabled={pending}
+            disabled={pending || stepUpPending}
             onChange={(event) => setPrompt(event.target.value)}
             placeholder="Ask the local model something useful."
             rows={4}
@@ -478,11 +616,17 @@ export function ChatWorkspace({
             <p className="chat-kicker">
               {pending
                 ? "Streaming response..."
+                : stepUpRequest
+                  ? `Password confirmation required for ${stepUpRequest.scriptName}`
                 : useRetrieval && documents.length > 0
                   ? "Knowledge base retrieval enabled"
                   : "Authenticated users only"}
             </p>
-            <button className="chat-primary-button" disabled={pending || !prompt.trim()} type="submit">
+            <button
+              className="chat-primary-button"
+              disabled={pending || stepUpPending || !prompt.trim()}
+              type="submit"
+            >
               {pending ? "Sending..." : "Send"}
             </button>
           </div>

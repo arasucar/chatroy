@@ -1,6 +1,7 @@
 import { requireDb } from "./db";
 import { authAuditLogs } from "./db/schema";
 import type { AuthAuditEvent } from "@roy/shared";
+import { logger } from "./logger";
 
 interface AuditEntry {
   event: AuthAuditEvent;
@@ -25,7 +26,7 @@ export async function writeAuditLog(entry: AuditEntry): Promise<void> {
       metadata: entry.metadata ?? null,
     });
   } catch (err) {
-    console.error("[audit] Failed to write audit log:", err);
+    logger.error("audit log write failed", { event: entry.event, error: err instanceof Error ? err.message : String(err) });
     // Do not throw — audit failures must not block auth flows
   }
 }

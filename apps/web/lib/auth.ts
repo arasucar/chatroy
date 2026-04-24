@@ -9,6 +9,7 @@ import type { AppRole } from "@roy/shared";
 
 export type SessionUser = typeof users.$inferSelect;
 export type SessionRow = typeof sessions.$inferSelect;
+export const STEP_UP_WINDOW_MS = 10 * 60 * 1000;
 
 export async function createSession(
   userId: string,
@@ -27,6 +28,7 @@ export async function createSession(
   cookie.userId = userId;
   cookie.role = role;
   cookie.expiresAt = expiresAt.getTime();
+  delete cookie.stepUpVerifiedAt;
   await cookie.save();
 
   return sessionId;
@@ -46,6 +48,53 @@ export async function deleteSession(): Promise<void> {
   }
 
   cookie.destroy();
+}
+
+export function isStepUpFreshAt(
+  stepUpVerifiedAt: number | null | undefined,
+  now = Date.now(),
+): boolean {
+  return (
+    typeof stepUpVerifiedAt === "number" &&
+    Number.isFinite(stepUpVerifiedAt) &&
+    stepUpVerifiedAt >= now - STEP_UP_WINDOW_MS
+  );
+}
+
+export async function hasRecentStepUp(): Promise<boolean> {
+  const cookie = await getSession();
+  return isStepUpFreshAt(cookie.stepUpVerifiedAt);
+}
+
+export async function markStepUpVerified(): Promise<Date> {
+  const cookie = await getSession();
+  const verifiedAt = Date.now();
+  cookie.stepUpVerifiedAt = verifiedAt;
+  await cookie.save();
+  return new Date(verifiedAt + STEP_UP_WINDOW_MS);
+}
+
+export async function verifyStepUpPassword(
+  password: string,
+): Promise<{ ok: true; expiresAt: Date } | { ok: false; error: string }> {
+  const trimmed = password.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Password is required." };
+  }
+
+  const session = await resolveSession();
+  if (!session?.user.passwordHash) {
+    return { ok: false, error: "Unauthorized." };
+  }
+
+  const bcrypt = await import("bcryptjs");
+  const valid = await bcrypt.compare(trimmed, session.user.passwordHash);
+  if (!valid) {
+    return { ok: false, error: "Password confirmation failed." };
+  }
+
+  const expiresAt = await markStepUpVerified();
+  return { ok: true, expiresAt };
 }
 
 export async function resolveSession(): Promise<{

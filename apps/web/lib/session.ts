@@ -7,6 +7,7 @@ export interface SessionData {
   userId: string;
   role: AppRole;
   expiresAt: number; // Unix ms
+  stepUpVerifiedAt?: number;
 }
 
 export const SESSION_COOKIE_NAME = "roy_session";

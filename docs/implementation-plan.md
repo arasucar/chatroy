@@ -85,8 +85,63 @@ Validated in repo and on host on April 23, 2026:
     provider instead of only blocking.
   - Remote runs record provider response IDs, token usage, and estimated
     conversation cost, and the UI exposes the answering provider/model.
-- The immediate frontier is Phase 7: controlled external actions, starting with
-  web search and explicit per-tool permissions.
+- Phase 7 is implemented in code, build-verified, and deployed.
+  - Search-intent queries can use Tavily web search as a controlled external
+    tool when the server key is configured and the user allowlist permits it.
+  - Admins can toggle search access per user at `/admin/users`.
+  - Tool use is logged in `runs.toolsUsed` and visible in `/admin/runs`.
+- Project 2 scope is now complete on this repo.
+- Project 3 script-routing slice is implemented in code, build-verified, and deployed.
+  - Scripts are represented as database rows with argv templates and declared params.
+  - `/admin/scripts` exposes the authoring surface for that registry.
+  - Admins can run registered scripts manually via argv-only substitution, and
+    `script_runs` persists the resolved command, argv, exit code, and output.
+  - The `script` classifier route is now live: the mediator's `ChatDecision` type
+    is a three-way discriminated union (`chat | escalate | script`).
+  - `classifyScriptIntent()` calls the local Ollama model with the enabled-script
+    registry and the user prompt; it selects a script + params only when intent is
+    unambiguous, falls back to `chat` otherwise, and always validates params against
+    the declared schema before routing.
+  - The `run_route` enum was extended to include `"script"` (migration 0009).
+  - `/api/chat` handles the `script` route: it executes the script via `execFile`,
+    streams the formatted output (stdout, stderr, exit code) as the assistant reply,
+    and records both a `runs` row and a `script_runs` row.
+  - 46 tests pass including 8 new mediator tests for the script route.
+- Project 3 audit and rendering improvements are implemented and deployed.
+  - Chat messages now render markdown (react-markdown + remark-gfm), so script
+    output (code blocks, bold labels, exit codes) and LLM-produced markdown
+    both display correctly in the dashboard.
+  - The `runs` table gained a nullable `script_id` FK to `scripts` (migration 0010).
+    `createRun` stores it for `route = "script"` decisions.
+  - `/admin/runs` links each `script` route row directly to the script detail
+    page and highlights the route in orange.
+  - `/admin/scripts/[scriptId]` expands each run into a collapsible row showing
+    the full command, stdout (neutral background), and stderr (accent background).
+- Project 3 sensitive-script step-up auth is implemented in code and test-verified.
+  - The `scripts` table gained a `requires_step_up` boolean (migration 0011).
+  - Admin script authoring and detail views now expose whether a script requires
+    recent password confirmation before execution.
+  - Manual script runs and AI-routed `script` decisions both enforce that gate.
+    The chat route performs the check before `createPendingTurn()`, so denied
+    executions do not persist a user message or run row.
+  - The dashboard chat now presents an inline password confirmation prompt for
+    blocked sensitive scripts and automatically retries the original prompt
+    after successful confirmation.
+- Phase 8 core is implemented and deployed.
+  - `lib/logger.ts` emits JSON-structured log lines to stdout with ts/level/msg
+    and arbitrary fields. Level is controlled by `LOG_LEVEL` env var (default: info).
+  - `lib/audit.ts`, `lib/search.ts`, and `lib/rate-limit.ts` now use the logger
+    instead of bare `console.*` calls.
+  - `/api/chat` emits `chat.classified` (route, tools, scriptId if applicable)
+    and `chat.completed` / `chat.failed` (runId, route, provider, durationMs)
+    log events, making every run traceable in Docker logs by run ID.
+  - `SCRIPT_ROUTING_ENABLED=false` env var disables AI-driven script routing
+    without removing other env vars (requires container restart).
+  - `scripts/backup-db.sh` dumps Postgres via `pg_dump` inside the container
+    to a timestamped gzip in `./backups/`, with restore instructions printed.
+    Drill verified: 8.0 K backup written and restore command confirmed.
+  - All services use `restart: unless-stopped` (already in place).
+  - 53 tests pass including 4 logger tests and 3 step-up window tests.
 
 One caveat: `fresh-host` ingress still proxies `web`, not `llm-hello`, so the
 Project 1 verification above is specifically for the current `live-host`

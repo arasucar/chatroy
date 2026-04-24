@@ -12,16 +12,42 @@ Validated on April 23, 2026:
   - `apps/web` now contains the real Next.js app, invite-only auth flow, admin
   bootstrap, invite acceptance, role enforcement, audit logging, Redis rate
   limiting, authenticated local chat, a narrow mediator run log, cited
-  document retrieval, and encrypted user-owned OpenAI fallback.
-  - `npm test` passes with 27 tests.
+  document retrieval, encrypted user-owned OpenAI fallback, and controlled web
+  search with per-user allowlists.
+  - `npm test` passes with 33 tests.
   - `npm run build` passes after splitting Node-only bootstrap logic into
     `instrumentation-node.ts`, which avoids bundling the Postgres client into
     the edge instrumentation path.
-- Project 3 has not started.
+- Project 3 script-routing slice is now implemented and deployed.
+  - `apps/web` contains a `scripts` table, `/admin/scripts`, and parser
+    helpers that keep scripts as data rows with argv templates and declared
+    params.
+  - Manual admin-triggered runs are recorded in `script_runs` with
+    argv-only resolution and persisted stdout/stderr metadata.
+  - The `script` classifier route is live: `ChatDecision` is a three-way
+    discriminated union (`chat | escalate | script`).
+  - `classifyScriptIntent()` calls the local Ollama model, selects a script
+    only when intent is unambiguous, validates params against the schema, and
+    falls back to `chat` on any ambiguity or error.
+  - `/api/chat` handles the `script` route: executes the script, streams
+    formatted output as the assistant reply, and records runs in both tables.
+  - `npm test` passes with 46 tests.
+- Project 3 sensitive-script step-up auth is now implemented.
+  - Scripts can be marked `requiresStepUp`, which persists on the script row
+    and is shown in the admin registry/detail views.
+  - Manual admin-triggered runs require current-password confirmation for
+    sensitive scripts.
+  - AI-routed script execution now checks the recent-password window before
+    creating a chat turn, so blocked sensitive runs do not leave orphaned
+    conversation messages behind.
+  - The chat workspace now shows an inline password confirmation panel and
+    retries the blocked script prompt automatically after successful re-auth.
+  - `npm test` passes with 53 tests.
 
-As of this snapshot, the next concrete product task is Project 2 Phase 7:
-controlled external tools such as web search, while keeping the Project 2
-classifier at the two-route shape (`chat | escalate`).
+As of this snapshot, Project 2 is complete and Project 3's core routing
+slice is done. What remains for Project 3: deeper per-turn script metadata in
+the chat history if you want richer retrospective inspection there, and the
+remaining Phase 8 ops hardening work.
 
 You are continuing work on an invite-only AI chatbot that will eventually grow
 into a personal DevOps copilot. A prior iteration produced a three-project

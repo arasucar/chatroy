@@ -1,4 +1,5 @@
 import { getRedis } from "./redis";
+import { logger } from "./logger";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -31,7 +32,7 @@ export async function checkRateLimit(
 
     return { allowed: true, remaining: limit - count - 1, resetAt };
   } catch (err) {
-    console.warn("[rate-limit] Redis error, failing open:", err);
+    logger.warn("rate limit redis error, failing open", { key, error: err instanceof Error ? err.message : String(err) });
     return { allowed: true, remaining: 1, resetAt };
   }
 }

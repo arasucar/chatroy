@@ -29,6 +29,7 @@ export async function createRun(input: {
       model: input.decision.model,
       decisionReason: input.decision.reason,
       requestExcerpt: excerpt(input.prompt),
+      scriptId: input.decision.route === "script" ? input.decision.script.id : null,
     })
     .returning();
 
@@ -44,9 +45,10 @@ export async function finishRun(
     providerResponseId?: string | null;
     inputTokens?: number | null;
     outputTokens?: number | null;
-    totalTokens?: number | null;
-    estimatedCostUsd?: number | null;
-  },
+      totalTokens?: number | null;
+      estimatedCostUsd?: number | null;
+      toolsUsed?: string[] | null;
+    },
 ): Promise<void> {
   const db = requireDb();
   await db
@@ -60,6 +62,7 @@ export async function finishRun(
       outputTokens: input.outputTokens ?? null,
       totalTokens: input.totalTokens ?? null,
       estimatedCostUsd: input.estimatedCostUsd ?? null,
+      toolsUsed: input.toolsUsed ?? null,
       completedAt: new Date(),
     })
     .where(eq(runs.id, runId));

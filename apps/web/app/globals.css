@@ -285,6 +285,25 @@ a {
   line-height: 1.5;
 }
 
+.chat-citation-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(29, 30, 32, 0.08);
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+.chat-citation-link {
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-decoration: none;
+  word-break: break-all;
+}
+
 .chat-doc-link {
   margin-top: 4px;
   text-decoration: none;
@@ -355,6 +374,69 @@ a {
   color: var(--muted);
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+.chat-message-body {
+  margin-top: 6px;
+}
+
+.chat-message-body p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: normal;
+}
+
+.chat-message-body p:first-child {
+  margin-top: 0;
+}
+
+.chat-message-body pre {
+  margin: 10px 0;
+  padding: 12px 14px;
+  background: rgba(29, 30, 32, 0.06);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.chat-message-body pre code {
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  background: none;
+  padding: 0;
+}
+
+.chat-message-body code {
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  background: rgba(29, 30, 32, 0.07);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.chat-message-body ul,
+.chat-message-body ol {
+  margin: 8px 0;
+  padding-left: 1.4em;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.chat-message-body li {
+  margin: 3px 0;
+}
+
+.chat-message-body strong {
+  color: var(--text);
+}
+
+.chat-message-body h1,
+.chat-message-body h2,
+.chat-message-body h3 {
+  margin: 12px 0 4px;
+  color: var(--text);
+  font-size: 1em;
 }
 
 .chat-citation-label {

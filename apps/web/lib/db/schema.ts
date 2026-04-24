@@ -1,4 +1,5 @@
 import {
+  boolean,
   customType,
   doublePrecision,
   integer,
@@ -21,7 +22,7 @@ export const appRole = pgEnum("app_role", appRoleValues);
 export const inviteStatus = pgEnum("invite_status", inviteStatusValues);
 export const authAuditEvent = pgEnum("auth_audit_event", authAuditEventValues);
 export const chatMessageRole = pgEnum("chat_message_role", ["user", "assistant"]);
-export const runRoute = pgEnum("run_route", ["chat", "escalate"]);
+export const runRoute = pgEnum("run_route", ["chat", "escalate", "script"]);
 export const runProvider = pgEnum("run_provider", ["local", "remote"]);
 export const runStatus = pgEnum("run_status", [
   "started",
@@ -30,6 +31,17 @@ export const runStatus = pgEnum("run_status", [
   "failed",
 ]);
 export const remoteProvider = pgEnum("remote_provider", ["openai"]);
+export const scriptParamType = pgEnum("script_param_type", [
+  "enum",
+  "string",
+  "number",
+  "boolean",
+]);
+export const scriptRunStatus = pgEnum("script_run_status", [
+  "started",
+  "completed",
+  "failed",
+]);
 
 const vector = customType<{
   data: number[];
@@ -57,6 +69,17 @@ export type MessageCitation = {
   chunkIndex: number;
   excerpt: string;
   score: number;
+  source?: "retrieval" | "search";
+  url?: string;
+};
+
+export type ScriptParamDefinition = {
+  name: string;
+  label: string;
+  type: "enum" | "string" | "number" | "boolean";
+  required: boolean;
+  options?: string[];
+  description?: string;
 };
 
 export const users = pgTable(
@@ -67,6 +90,7 @@ export const users = pgTable(
     passwordHash: text("password_hash"),
     displayName: text("display_name"),
     role: appRole("role").notNull().default("member"),
+    searchEnabled: boolean("search_enabled").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -243,6 +267,8 @@ export const runs = pgTable(
     outputTokens: integer("output_tokens"),
     totalTokens: integer("total_tokens"),
     estimatedCostUsd: doublePrecision("estimated_cost_usd"),
+    toolsUsed: jsonb("tools_used").$type<string[] | null>(),
+    scriptId: uuid("script_id").references(() => scripts.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
@@ -251,6 +277,7 @@ export const runs = pgTable(
     userIdIdx: index("runs_user_id_idx").on(table.userId),
     createdAtIdx: index("runs_created_at_idx").on(table.createdAt),
     statusIdx: index("runs_status_idx").on(table.status),
+    scriptIdIdx: index("runs_script_id_idx").on(table.scriptId),
   }),
 );
 
@@ -277,6 +304,56 @@ export const userProviderKeys = pgTable(
   }),
 );
 
+export const scripts = pgTable(
+  "scripts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    command: text("command").notNull(),
+    argvTemplate: jsonb("argv_template").$type<string[]>().notNull(),
+    paramsSchema: jsonb("params_schema").$type<ScriptParamDefinition[]>().notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    requiresStepUp: boolean("requires_step_up").notNull().default(false),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    nameUniqueIdx: uniqueIndex("scripts_name_unique_idx").on(table.name),
+    enabledIdx: index("scripts_enabled_idx").on(table.enabled),
+    createdByUserIdIdx: index("scripts_created_by_user_id_idx").on(table.createdByUserId),
+  }),
+);
+
+export const scriptRuns = pgTable(
+  "script_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    scriptId: uuid("script_id")
+      .references(() => scripts.id, { onDelete: "cascade" })
+      .notNull(),
+    invokedByUserId: uuid("invoked_by_user_id")
+      .references(() => users.id, { onDelete: "set null" }),
+    status: scriptRunStatus("status").notNull().default("started"),
+    resolvedCommand: text("resolved_command").notNull(),
+    resolvedArgv: jsonb("resolved_argv").$type<string[]>().notNull(),
+    params: jsonb("params").$type<Record<string, string | number | boolean>>().notNull(),
+    stdout: text("stdout"),
+    stderr: text("stderr"),
+    exitCode: integer("exit_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => ({
+    scriptIdIdx: index("script_runs_script_id_idx").on(table.scriptId),
+    invokedByUserIdIdx: index("script_runs_invoked_by_user_id_idx").on(table.invokedByUserId),
+    createdAtIdx: index("script_runs_created_at_idx").on(table.createdAt),
+  }),
+);
+
 export const schema = {
   users,
   sessions,
@@ -288,4 +365,6 @@ export const schema = {
   documents,
   documentChunks,
   userProviderKeys,
+  scripts,
+  scriptRuns,
 };

@@ -10,7 +10,7 @@ describe("admin bootstrap (instrumentation.register)", () => {
   beforeEach(async () => {
     vi.resetModules();
     await cleanDb();
-    process.env.NEXT_RUNTIME = "nodejs";
+    delete process.env.NEXT_RUNTIME;
     process.env.ADMIN_EMAIL = "admin@test.local";
     process.env.ADMIN_PASSWORD = "correct-horse-battery";
   });
@@ -51,5 +51,14 @@ describe("admin bootstrap (instrumentation.register)", () => {
 
     const rows = await testDb.query.users.findMany();
     expect(rows).toHaveLength(0);
+  });
+
+  it("bootstraps when NEXT_RUNTIME is unset", async () => {
+    delete process.env.NEXT_RUNTIME;
+    const { register } = await import("../instrumentation");
+    await register();
+
+    const rows = await testDb.query.users.findMany();
+    expect(rows).toHaveLength(1);
   });
 });

@@ -3,6 +3,27 @@ type ProviderMessage = {
   content: string;
 };
 
+export async function callLocalChatOnce(input: {
+  messages: ProviderMessage[];
+  model: string;
+  ollamaBaseUrl?: string;
+}): Promise<{ message: { content: string } }> {
+  const baseUrl = input.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://ollama:11434";
+
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ model: input.model, stream: false, messages: input.messages }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new Error(message || "Ollama chat request failed.");
+  }
+
+  return response.json() as Promise<{ message: { content: string } }>;
+}
+
 export async function startLocalChatStream(input: {
   messages: ProviderMessage[];
   model: string;

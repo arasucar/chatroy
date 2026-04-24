@@ -1,18 +1,32 @@
+import type { ScriptParamDefinition } from "./db/schema";
+import { callLocalChatOnce } from "./provider";
+import type { ScriptRow } from "./scripts";
+
 export type ChatDecision =
   | {
       route: "chat";
+      tools: ("search")[];
       provider: "local";
       model: string;
       reason: string;
     }
   | {
       route: "escalate";
+      tools: [];
       provider: "remote";
       model: null;
       reason: string;
+    }
+  | {
+      route: "script";
+      tools: [];
+      provider: "local";
+      model: string;
+      script: { id: string; name: string; params: Record<string, string | number | boolean> };
+      reason: string;
     };
 
-const REMOTE_CAPABILITY_RULES: Array<{
+const SEARCH_RULES: Array<{
   pattern: RegExp;
   reason: string;
 }> = [
@@ -33,13 +47,25 @@ const REMOTE_CAPABILITY_RULES: Array<{
 export function classifyChatPrompt(
   prompt: string,
   model = process.env.OLLAMA_CHAT_MODEL || "qwen2.5:7b-instruct-q4_K_M",
+  options?: { forceEscalate?: boolean },
 ): ChatDecision {
-  for (const rule of REMOTE_CAPABILITY_RULES) {
+  if (options?.forceEscalate) {
+    return {
+      route: "escalate",
+      tools: [],
+      provider: "remote",
+      model: null,
+      reason: "Forced remote escalation for this request.",
+    };
+  }
+
+  for (const rule of SEARCH_RULES) {
     if (rule.pattern.test(prompt)) {
       return {
-        route: "escalate",
-        provider: "remote",
-        model: null,
+        route: "chat",
+        tools: ["search"],
+        provider: "local",
+        model,
         reason: rule.reason,
       };
     }
@@ -47,8 +73,151 @@ export function classifyChatPrompt(
 
   return {
     route: "chat",
+    tools: [],
     provider: "local",
     model,
     reason: "The request fits the local chat path.",
+  };
+}
+
+function validateScriptParams(
+  paramsSchema: ScriptParamDefinition[],
+  rawParams: Record<string, unknown>,
+): Record<string, string | number | boolean> | null {
+  const result: Record<string, string | number | boolean> = {};
+
+  for (const param of paramsSchema) {
+    const raw = rawParams[param.name];
+
+    if (raw === undefined || raw === null) {
+      if (param.required) return null;
+      continue;
+    }
+
+    if (param.type === "boolean") {
+      result[param.name] = Boolean(raw);
+      continue;
+    }
+
+    if (param.type === "number") {
+      const num = Number(raw);
+      if (!Number.isFinite(num)) return null;
+      result[param.name] = num;
+      continue;
+    }
+
+    const str = String(raw).trim();
+    if (!str && param.required) return null;
+
+    if (param.type === "enum") {
+      if (!param.options?.includes(str)) return null;
+      result[param.name] = str;
+      continue;
+    }
+
+    result[param.name] = str;
+  }
+
+  return result;
+}
+
+function buildScriptRegistryText(scripts: ScriptRow[]): string {
+  return scripts
+    .map((s) => {
+      const paramDesc =
+        s.paramsSchema.length > 0
+          ? `Params: ${s.paramsSchema
+              .map((p) => {
+                const opts = p.type === "enum" && p.options ? `, options: ${p.options.join("|")}` : "";
+                return `${p.name} (${p.type}${opts}${p.required ? ", required" : ""})`;
+              })
+              .join("; ")}`
+          : "No params.";
+      return `- id: ${s.id}\n  name: ${s.name}\n  description: ${s.description ?? "No description."}\n  ${paramDesc}`;
+    })
+    .join("\n");
+}
+
+export async function classifyScriptIntent(
+  prompt: string,
+  scripts: ScriptRow[],
+  model = process.env.OLLAMA_CHAT_MODEL || "qwen2.5:7b-instruct-q4_K_M",
+  options?: { ollamaBaseUrl?: string },
+): Promise<ChatDecision> {
+  const chatFallback: ChatDecision = {
+    route: "chat",
+    tools: [],
+    provider: "local",
+    model,
+    reason: "The request fits the local chat path.",
+  };
+
+  const enabled = scripts.filter((s) => s.enabled);
+  if (enabled.length === 0) return chatFallback;
+
+  const registryText = buildScriptRegistryText(enabled);
+
+  const systemPrompt = `You are a script routing classifier. Given a user prompt and a script registry, decide if the user clearly intends to run one of the registered scripts. Respond with ONLY valid JSON — no explanation, no markdown.
+
+Script registry:
+${registryText}
+
+Rules:
+- Only select a script if the intent is unambiguous.
+- Only use params declared in the script's schema.
+- For enum params, only use the listed options.
+- Provide all required params or do not select the script.
+- If selecting: {"route":"script","scriptId":"<id>","params":{...},"reason":"<short reason>"}
+- If no clear match: {"route":"chat"}`;
+
+  let raw: { message: { content: string } };
+  try {
+    raw = await callLocalChatOnce({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
+      ollamaBaseUrl: options?.ollamaBaseUrl,
+    });
+  } catch {
+    return chatFallback;
+  }
+
+  const content = raw.message?.content ?? "";
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return chatFallback;
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+  } catch {
+    return chatFallback;
+  }
+
+  if (parsed.route !== "script") return chatFallback;
+
+  const selectedScript = enabled.find((s) => s.id === parsed.scriptId);
+  if (!selectedScript) return chatFallback;
+
+  const rawParams =
+    parsed.params && typeof parsed.params === "object" && !Array.isArray(parsed.params)
+      ? (parsed.params as Record<string, unknown>)
+      : {};
+
+  const resolvedParams = validateScriptParams(selectedScript.paramsSchema, rawParams);
+  if (!resolvedParams) return chatFallback;
+
+  return {
+    route: "script",
+    tools: [],
+    provider: "local",
+    model,
+    script: {
+      id: selectedScript.id,
+      name: selectedScript.name,
+      params: resolvedParams,
+    },
+    reason: typeof parsed.reason === "string" ? parsed.reason : `Matched script: ${selectedScript.name}`,
   };
 }

@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { requireDb } from "@/lib/db";
-import { conversations, users } from "@/lib/db/schema";
+import { conversations, scripts, users } from "@/lib/db/schema";
 import { listRecentRuns } from "@/lib/runs";
 
 export default async function AdminRunsPage() {
@@ -9,20 +9,23 @@ export default async function AdminRunsPage() {
 
   const userIds = [...new Set(recentRuns.map((run) => run.userId))];
   const conversationIds = [...new Set(recentRuns.map((run) => run.conversationId))];
+  const scriptIds = [...new Set(recentRuns.flatMap((run) => (run.scriptId ? [run.scriptId] : [])))];
 
-  const knownUsers = userIds.length
-    ? await db.query.users.findMany({ where: inArray(users.id, userIds) })
-    : [];
-  const knownConversations = conversationIds.length
-    ? await db.query.conversations.findMany({
-        where: inArray(conversations.id, conversationIds),
-      })
-    : [];
+  const [knownUsers, knownConversations, knownScripts] = await Promise.all([
+    userIds.length
+      ? db.query.users.findMany({ where: inArray(users.id, userIds) })
+      : Promise.resolve([]),
+    conversationIds.length
+      ? db.query.conversations.findMany({ where: inArray(conversations.id, conversationIds) })
+      : Promise.resolve([]),
+    scriptIds.length
+      ? db.query.scripts.findMany({ where: inArray(scripts.id, scriptIds) })
+      : Promise.resolve([]),
+  ]);
 
   const userById = new Map(knownUsers.map((user) => [user.id, user]));
-  const conversationById = new Map(
-    knownConversations.map((conversation) => [conversation.id, conversation]),
-  );
+  const conversationById = new Map(knownConversations.map((c) => [c.id, c]));
+  const scriptById = new Map(knownScripts.map((s) => [s.id, s]));
 
   return (
     <main style={{ padding: "2rem", maxWidth: 1200 }}>
@@ -42,13 +45,15 @@ export default async function AdminRunsPage() {
               <th style={{ padding: "0.5rem" }}>Model</th>
               <th style={{ padding: "0.5rem" }}>Usage</th>
               <th style={{ padding: "0.5rem" }}>Cost</th>
-              <th style={{ padding: "0.5rem" }}>Reason</th>
+              <th style={{ padding: "0.5rem" }}>Reason / Script</th>
+              <th style={{ padding: "0.5rem" }}>Tools</th>
             </tr>
           </thead>
           <tbody>
             {recentRuns.map((run) => {
               const user = userById.get(run.userId);
               const conversation = conversationById.get(run.conversationId);
+              const script = run.scriptId ? scriptById.get(run.scriptId) : null;
 
               return (
                 <tr key={run.id} style={{ borderBottom: "1px solid var(--border)" }}>
@@ -59,7 +64,16 @@ export default async function AdminRunsPage() {
                   <td style={{ padding: "0.5rem" }}>
                     {conversation?.title ?? run.conversationId.slice(0, 8)}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>{run.route}</td>
+                  <td style={{ padding: "0.5rem" }}>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: run.route === "script" ? "var(--accent)" : "inherit",
+                      }}
+                    >
+                      {run.route}
+                    </span>
+                  </td>
                   <td style={{ padding: "0.5rem" }}>{run.provider}</td>
                   <td style={{ padding: "0.5rem" }}>{run.status}</td>
                   <td style={{ padding: "0.5rem" }}>{run.model ?? "—"}</td>
@@ -72,7 +86,18 @@ export default async function AdminRunsPage() {
                       : "—"}
                   </td>
                   <td style={{ padding: "0.5rem", color: "var(--muted)" }}>
-                    {run.decisionReason ?? run.errorMessage ?? "—"}
+                    {script ? (
+                      <a href={`/admin/scripts/${script.id}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
+                        {script.name}
+                      </a>
+                    ) : (
+                      run.decisionReason ?? run.errorMessage ?? "—"
+                    )}
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>
+                    {Array.isArray(run.toolsUsed) && run.toolsUsed.length > 0
+                      ? run.toolsUsed.join(", ")
+                      : "—"}
                   </td>
                 </tr>
               );
