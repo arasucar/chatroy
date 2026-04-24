@@ -24,7 +24,8 @@ beforeAll(async () => {
   }
   await adminSql.end();
 
-  sql = postgres(TEST_DATABASE_URL, { prepare: false });
+  sql = postgres(TEST_DATABASE_URL, { prepare: false, onnotice: () => {} });
+  await sql`CREATE EXTENSION IF NOT EXISTS vector`;
   testDb = drizzle(sql, { schema });
   await migrate(testDb, { migrationsFolder: "./drizzle" });
 });
