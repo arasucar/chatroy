@@ -9,7 +9,10 @@ export function getRedis(): Redis {
     if (!url) throw new Error("REDIS_URL must be set");
     client = new Redis(url, { lazyConnect: true, enableReadyCheck: false });
     client.on("error", (err) =>
-      logger.error("redis connection error", { error: err.message }),
+      logger.error("redis connection error", {
+        error: err.message,
+        code: (err as NodeJS.ErrnoException).code,
+      }),
     );
   }
   return client;
