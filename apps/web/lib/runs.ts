@@ -2,14 +2,9 @@ import { desc, eq, sql } from "drizzle-orm";
 import { requireDb } from "./db";
 import { runs } from "./db/schema";
 import type { ChatDecision } from "./mediator";
+import { excerpt } from "./utils";
 
 export type RunRow = typeof runs.$inferSelect;
-
-function excerpt(value: string, maxLength = 240): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) return normalized;
-  return `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
-}
 
 export async function createRun(input: {
   conversationId: string;

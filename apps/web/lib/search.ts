@@ -1,5 +1,6 @@
 import type { MessageCitation } from "./db/schema";
 import { logger } from "./logger";
+import { excerpt } from "./utils";
 
 const TAVILY_URL = "https://api.tavily.com/search";
 
@@ -13,12 +14,6 @@ type TavilyResult = {
 type TavilyResponse = {
   results?: TavilyResult[];
 };
-
-function excerpt(value: string, maxLength = 240): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= maxLength) return normalized;
-  return `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
-}
 
 export async function webSearch(
   query: string,
