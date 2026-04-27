@@ -10,7 +10,6 @@ import type { AppRole } from "@roy/shared";
 
 export async function changeRoleAction(targetUserId: string, newRole: AppRole): Promise<void> {
   const admin = await requireAdmin();
-  if (!admin) return;
   if (admin.user.id === targetUserId) return;
 
   const db = requireDb();
@@ -31,7 +30,6 @@ export async function setSearchEnabledAction(
   enabled: boolean,
 ): Promise<void> {
   const admin = await requireAdmin();
-  if (!admin) return;
 
   const db = requireDb();
   await db

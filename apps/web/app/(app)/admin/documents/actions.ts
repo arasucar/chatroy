@@ -11,7 +11,6 @@ export async function createDocumentAction(
   formData: FormData,
 ): Promise<CreateDocumentState> {
   const admin = await requireAdmin();
-  if (!admin) return { error: "Unauthorized." };
 
   const title = ((formData.get("title") as string | null) ?? "").trim() || null;
   const rawText = ((formData.get("rawText") as string | null) ?? "").trim();

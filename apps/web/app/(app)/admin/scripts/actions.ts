@@ -11,7 +11,6 @@ export async function createScriptAction(
   formData: FormData,
 ): Promise<CreateScriptState> {
   const admin = await requireAdmin();
-  if (!admin) return { error: "Unauthorized." };
 
   const name = String(formData.get("name") ?? "");
   const description = String(formData.get("description") ?? "");

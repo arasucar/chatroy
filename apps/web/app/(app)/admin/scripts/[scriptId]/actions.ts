@@ -12,7 +12,6 @@ export async function runScriptAction(
   formData: FormData,
 ): Promise<RunScriptState> {
   const admin = await requireAdmin();
-  if (!admin) return { error: "Unauthorized." };
 
   const script = await getScriptById(scriptId);
   if (!script) return { error: "Script not found." };

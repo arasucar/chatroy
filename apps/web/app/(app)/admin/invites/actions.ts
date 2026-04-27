@@ -16,7 +16,6 @@ export async function createInviteAction(
   formData: FormData,
 ): Promise<CreateInviteState> {
   const admin = await requireAdmin();
-  if (!admin) return { error: "Unauthorized." };
 
   const email = ((formData.get("email") as string | null) ?? "").toLowerCase().trim() || null;
   const role = ((formData.get("role") as string | null) ?? "member") as AppRole;
@@ -46,7 +45,6 @@ export async function createInviteAction(
 
 export async function revokeInviteAction(inviteId: string): Promise<void> {
   const admin = await requireAdmin();
-  if (!admin) return;
 
   const db = requireDb();
   await db
