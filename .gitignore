@@ -46,3 +46,7 @@ uploads/
 
 # Git worktrees
 .worktrees/
+
+# Claude
+.claude/
+CLAUDE.md

@@ -31,6 +31,11 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|healthz|login(?:$|\\/)|accept(?:$|\\/)).*)",
+    "/dashboard/:path*",
+    "/settings/:path*",
+    "/admin/:path*",
+    "/api/chat/:path*",
+    "/api/conversations/:path*",
+    "/api/auth/step-up/:path*",
   ],
 };
