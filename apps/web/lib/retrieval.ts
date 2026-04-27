@@ -5,6 +5,7 @@ import {
   documents,
   type MessageCitation,
 } from "./db/schema";
+import { excerpt } from "./utils";
 import { generateEmbeddings } from "./provider";
 
 export type DocumentRow = typeof documents.$inferSelect;
@@ -183,7 +184,7 @@ export async function searchDocs(query: string, limit = 4): Promise<MessageCitat
       documentTitle: row.documentTitle,
       chunkId: row.chunkId,
       chunkIndex: row.chunkIndex,
-      excerpt: row.content.length <= 240 ? row.content : `${row.content.slice(0, 237).trimEnd()}...`,
+      excerpt: excerpt(row.content),
       score: Number(row.score),
     }))
     .filter((row) => Number.isFinite(row.score) && row.score > 0);
