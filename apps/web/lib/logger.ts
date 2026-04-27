@@ -3,13 +3,12 @@ type LogFields = Record<string, unknown>;
 
 const LEVELS: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 
-function activeLevel(): number {
-  const raw = (process.env.LOG_LEVEL ?? "info").toLowerCase() as LogLevel;
-  return LEVELS[raw] ?? LEVELS.info;
-}
+const ACTIVE_LEVEL =
+  LEVELS[(process.env.LOG_LEVEL ?? "info").toLowerCase() as LogLevel] ??
+  LEVELS.info;
 
 function emit(level: LogLevel, msg: string, fields?: LogFields): void {
-  if (LEVELS[level] < activeLevel()) return;
+  if (LEVELS[level] < ACTIVE_LEVEL) return;
   const line = JSON.stringify({ ts: new Date().toISOString(), level, msg, ...fields });
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
