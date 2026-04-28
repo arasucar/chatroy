@@ -271,12 +271,15 @@ export async function POST(request: Request) {
 
     const model = openaiKey.defaultModel || "gpt-5-mini";
     let upstream: Response;
+    let cleanupStream: () => void = () => {};
     try {
-      upstream = await startOpenAIResponsesStream({
+      const result = await startOpenAIResponsesStream({
         apiKey: openaiKey.apiKey,
         model,
         messages: providerMessages,
       });
+      upstream = result.response;
+      cleanupStream = result.cleanup;
     } catch (error) {
       await finishRun(run.id, {
         status: "failed",
@@ -484,6 +487,7 @@ export async function POST(request: Request) {
           }
           controller.enqueue(streamEvent({ type: "error", error: message }));
         } finally {
+          cleanupStream();
           controller.close();
         }
       },
@@ -501,11 +505,14 @@ export async function POST(request: Request) {
   const model = effectiveDecision.model;
 
   let upstream: Response;
+  let cleanupLocalStream: () => void = () => {};
   try {
-    upstream = await startLocalChatStream({
+    const result = await startLocalChatStream({
       model,
       messages: providerMessages,
     });
+    upstream = result.response;
+    cleanupLocalStream = result.cleanup;
   } catch (error) {
     await finishRun(run.id, {
       status: "failed",
@@ -640,6 +647,7 @@ export async function POST(request: Request) {
           }),
         );
       } finally {
+        cleanupLocalStream();
         controller.close();
       }
     },

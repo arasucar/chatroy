@@ -3,6 +3,8 @@ type ProviderMessage = {
   content: string;
 };
 
+const STREAM_TIMEOUT_MS = Number(process.env.OLLAMA_STREAM_TIMEOUT_MS) || 60_000;
+
 export async function callLocalChatOnce(input: {
   messages: ProviderMessage[];
   model: string;
@@ -28,10 +30,12 @@ export async function startLocalChatStream(input: {
   messages: ProviderMessage[];
   model: string;
   ollamaBaseUrl?: string;
-}): Promise<Response> {
+}): Promise<{ response: Response; cleanup: () => void }> {
   const baseUrl = input.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || "http://ollama:11434";
-
-  return fetch(`${baseUrl}/api/chat`, {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), STREAM_TIMEOUT_MS);
+  const cleanup = () => clearTimeout(timer);
+  const response = await fetch(`${baseUrl}/api/chat`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -41,7 +45,9 @@ export async function startLocalChatStream(input: {
       stream: true,
       messages: input.messages,
     }),
+    signal: abort.signal,
   });
+  return { response, cleanup };
 }
 
 export async function generateEmbeddings(input: {
@@ -78,8 +84,11 @@ export async function startOpenAIResponsesStream(input: {
   apiKey: string;
   model: string;
   messages: ProviderMessage[];
-}): Promise<Response> {
-  return fetch("https://api.openai.com/v1/responses", {
+}): Promise<{ response: Response; cleanup: () => void }> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), STREAM_TIMEOUT_MS);
+  const cleanup = () => clearTimeout(timer);
+  const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${input.apiKey}`,
@@ -94,5 +103,7 @@ export async function startOpenAIResponsesStream(input: {
         content: [{ type: "input_text", text: message.content }],
       })),
     }),
+    signal: abort.signal,
   });
+  return { response, cleanup };
 }
