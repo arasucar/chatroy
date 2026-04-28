@@ -1,4 +1,4 @@
-type ProviderMessage = {
+export type ProviderMessage = {
   role: "developer" | "system" | "user" | "assistant";
   content: string;
 };
