@@ -1,8 +1,18 @@
-import { verifyStepUpPassword } from "@/lib/auth";
+import { resolveSession, verifyStepUpPassword } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  let payload: { password?: string };
+  const session = await resolveSession();
+  if (!session) {
+    return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
+  const rl = await checkRateLimit(`step-up:${session.user.id}`, 10, 60_000);
+  if (!rl.allowed) {
+    return Response.json({ error: "Rate limit exceeded." }, { status: 429 });
+  }
+
+  let payload: { password?: string };
   try {
     payload = (await request.json()) as { password?: string };
   } catch {

@@ -1,5 +1,6 @@
 import { hasRecentStepUp, resolveSession } from "@/lib/auth";
 import { createPendingTurn, saveAssistantReply } from "@/lib/chat";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { MessageCitation } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 import { classifyChatPrompt, classifyScriptIntent } from "@/lib/mediator";
@@ -53,6 +54,11 @@ export async function POST(request: Request) {
   const session = await resolveSession();
   if (!session) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const rl = await checkRateLimit(`chat:${session.user.id}`, 30, 60_000);
+  if (!rl.allowed) {
+    return Response.json({ error: "Rate limit exceeded." }, { status: 429 });
   }
 
   let payload: { prompt?: string; conversationId?: string | null; useRetrieval?: boolean };
@@ -154,6 +160,11 @@ export async function POST(request: Request) {
   });
 
   if (effectiveDecision.route === "script") {
+    const scriptRl = await checkRateLimit(`chat:script:${session.user.id}`, 5, 60_000);
+    if (!scriptRl.allowed) {
+      return Response.json({ error: "Script rate limit exceeded." }, { status: 429 });
+    }
+
     let scriptRun: Awaited<ReturnType<typeof executeScript>>;
     try {
       scriptRun = await executeScript({
