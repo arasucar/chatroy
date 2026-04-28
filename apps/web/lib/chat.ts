@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { requireDb } from "./db";
 import { conversations, messages, type MessageCitation } from "./db/schema";
 import { getConversationRunCostSummary } from "./runs";
@@ -13,11 +13,18 @@ export function deriveConversationTitle(prompt: string): string {
   return `${normalized.slice(0, 69).trimEnd()}...`;
 }
 
-export async function listConversationsForUser(userId: string): Promise<ConversationRow[]> {
+export async function listConversationsForUser(
+  userId: string,
+  limit = 50,
+  before?: Date,
+): Promise<ConversationRow[]> {
   const db = requireDb();
   return db.query.conversations.findMany({
-    where: eq(conversations.userId, userId),
+    where: before
+      ? and(eq(conversations.userId, userId), lt(conversations.updatedAt, before))
+      : eq(conversations.userId, userId),
     orderBy: [desc(conversations.updatedAt)],
+    limit,
   });
 }
 
