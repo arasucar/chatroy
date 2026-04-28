@@ -158,7 +158,8 @@ export async function routeRequest(
   const chatFallback: ChatDecision = initial; // already a plain chat decision
 
   return Promise.race([
-    classifyScriptIntent(prompt, opts.scripts, opts.model, { ollamaBaseUrl: opts.ollamaBaseUrl }),
+    classifyScriptIntent(prompt, opts.scripts, opts.model, { ollamaBaseUrl: opts.ollamaBaseUrl })
+      .catch(() => chatFallback),
     new Promise<ChatDecision>((resolve) => setTimeout(() => resolve(chatFallback), 3000)),
   ]);
 }

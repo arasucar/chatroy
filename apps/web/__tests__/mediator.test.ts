@@ -221,12 +221,11 @@ describe("routeRequest", () => {
   });
 
   it("falls back to chat if classifyScriptIntent times out", async () => {
+    vi.useFakeTimers();
     const script = makeScript();
     mockCallLocalChatOnce.mockImplementation(
       () => new Promise((resolve) => setTimeout(resolve, 5000)),
     );
-    // Use fake timers to control the 3-second timeout
-    vi.useFakeTimers();
     const promise = routeRequest("check nginx", { scripts: [script] });
     vi.advanceTimersByTime(3001);
     const result = await promise;
