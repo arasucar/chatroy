@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { classifyChatPrompt, classifyScriptIntent } from "../lib/mediator";
+import { classifyChatPrompt, classifyScriptIntent, routeRequest } from "../lib/mediator";
 import type { ScriptRow } from "../lib/scripts";
 
 vi.mock("../lib/provider", () => ({
@@ -189,5 +189,48 @@ describe("classifyScriptIntent", () => {
     if (result.route === "script") {
       expect(result.script.params).toEqual({ service: "postgres" });
     }
+  });
+});
+
+describe("routeRequest", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns chat immediately for ordinary prompts with no scripts", async () => {
+    const result = await routeRequest("Summarize this doc", { scripts: [] });
+    expect(result.route).toBe("chat");
+    expect(result.tools).toEqual([]);
+  });
+
+  it("returns search decision immediately without calling classifyScriptIntent", async () => {
+    const result = await routeRequest("What is the latest stock price today?", { scripts: [] });
+    expect(result.route).toBe("chat");
+    expect(result.tools).toEqual(["search"]);
+    // callLocalChatOnce should NOT have been called
+    expect(mockCallLocalChatOnce).not.toHaveBeenCalled();
+  });
+
+  it("calls classifyScriptIntent when scripts are present and prompt is plain chat", async () => {
+    const script = makeScript();
+    mockCallLocalChatOnce.mockResolvedValue({
+      message: { content: JSON.stringify({ route: "script", scriptId: "script-id-1", params: { service: "nginx" }, reason: "User wants to check nginx." }) },
+    });
+    const result = await routeRequest("check the nginx service", { scripts: [script] });
+    expect(result.route).toBe("script");
+  });
+
+  it("falls back to chat if classifyScriptIntent times out", async () => {
+    const script = makeScript();
+    mockCallLocalChatOnce.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 5000)),
+    );
+    // Use fake timers to control the 3-second timeout
+    vi.useFakeTimers();
+    const promise = routeRequest("check nginx", { scripts: [script] });
+    vi.advanceTimersByTime(3001);
+    const result = await promise;
+    vi.useRealTimers();
+    expect(result.route).toBe("chat");
   });
 });

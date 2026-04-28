@@ -3,7 +3,7 @@ import { createPendingTurn, saveAssistantReply } from "@/lib/chat";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { MessageCitation } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
-import { classifyChatPrompt, classifyScriptIntent } from "@/lib/mediator";
+import { routeRequest } from "@/lib/mediator";
 import { startLocalChatStream, startOpenAIResponsesStream } from "@/lib/provider";
 import { buildRetrievalSystemPrompt, searchDocs } from "@/lib/retrieval";
 import { estimateOpenAICostUsd } from "@/lib/remote-cost";
@@ -77,9 +77,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "A non-empty `prompt` field is required." }, { status: 400 });
   }
 
-  const decision = classifyChatPrompt(prompt);
+  const enabledScripts = SCRIPT_ROUTING_ENABLED
+    ? await listEnabledScripts().catch(() => [])
+    : [];
 
-  const searchGated =
+  const decision = await routeRequest(prompt, { scripts: enabledScripts });
+
+  const effectiveDecision =
     decision.route === "chat" && decision.tools.includes("search")
       ? session.searchEnabled && process.env.TAVILY_API_KEY
         ? decision
@@ -91,15 +95,6 @@ export async function POST(request: Request) {
             reason: "Search requires an enabled user allowlist and a configured Tavily API key.",
           }
       : decision;
-
-  const effectiveDecision =
-    SCRIPT_ROUTING_ENABLED && searchGated.route === "chat" && searchGated.tools.length === 0
-      ? await (async () => {
-          const enabledScripts = await listEnabledScripts().catch(() => []);
-          if (enabledScripts.length === 0) return searchGated;
-          return classifyScriptIntent(prompt, enabledScripts).catch(() => searchGated);
-        })()
-      : searchGated;
 
   let resolvedScript =
     effectiveDecision.route === "script"

@@ -138,6 +138,31 @@ function buildScriptRegistryText(scripts: ScriptRow[]): string {
     .join("\n");
 }
 
+export async function routeRequest(
+  prompt: string,
+  opts: {
+    scripts: ScriptRow[];
+    model?: string;
+    forceEscalate?: boolean;
+    ollamaBaseUrl?: string;
+  },
+): Promise<ChatDecision> {
+  const initial = classifyChatPrompt(prompt, opts.model, { forceEscalate: opts.forceEscalate });
+
+  // Short-circuit: no LLM needed for search or escalate routes
+  if (initial.route !== "chat" || initial.tools.length > 0) return initial;
+
+  // No scripts configured: skip the LLM classifier entirely
+  if (opts.scripts.length === 0) return initial;
+
+  const chatFallback: ChatDecision = initial; // already a plain chat decision
+
+  return Promise.race([
+    classifyScriptIntent(prompt, opts.scripts, opts.model, { ollamaBaseUrl: opts.ollamaBaseUrl }),
+    new Promise<ChatDecision>((resolve) => setTimeout(() => resolve(chatFallback), 3000)),
+  ]);
+}
+
 export async function classifyScriptIntent(
   prompt: string,
   scripts: ScriptRow[],
