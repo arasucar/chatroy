@@ -55,22 +55,22 @@ export async function registerAction(
     const [newUser] = await tx
       .insert(users)
       .values({ email, passwordHash, displayName, role: invite.role })
-      .returning({ id: users.id });
+      .returning({ id: users.id, searchEnabled: users.searchEnabled });
 
     await tx
       .update(invites)
       .set({ status: "accepted", acceptedByUserId: newUser.id, acceptedAt: new Date() })
       .where(eq(invites.id, invite.id));
 
-    return newUser.id;
+    return newUser;
   });
 
   if (!newUserId) return { error: "An account with this email already exists." };
 
-  await writeAuditLog({ event: "user.created", targetUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
-  await writeAuditLog({ event: "invite.accepted", actorUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
+  await writeAuditLog({ event: "user.created", targetUserId: newUserId.id, inviteId: invite.id, ipAddress: ip, userAgent });
+  await writeAuditLog({ event: "invite.accepted", actorUserId: newUserId.id, inviteId: invite.id, ipAddress: ip, userAgent });
 
-  await createSession(newUserId, invite.role, true, ip, userAgent);
+  await createSession(newUserId.id, invite.role, newUserId.searchEnabled, ip, userAgent);
 
   redirect("/dashboard");
 }
