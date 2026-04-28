@@ -14,6 +14,7 @@ export const STEP_UP_WINDOW_MS = 10 * 60 * 1000;
 export async function createSession(
   userId: string,
   role: AppRole,
+  searchEnabled: boolean,
   ipAddress: string | null,
   userAgent: string | null,
 ): Promise<string> {
@@ -28,6 +29,7 @@ export async function createSession(
   cookie.userId = userId;
   cookie.role = role;
   cookie.expiresAt = expiresAt.getTime();
+  cookie.searchEnabled = searchEnabled;
   delete cookie.stepUpVerifiedAt;
   await cookie.save();
 
@@ -100,6 +102,7 @@ export async function verifyStepUpPassword(
 export async function resolveSession(): Promise<{
   user: SessionUser;
   session: SessionRow;
+  searchEnabled: boolean;
 } | null> {
   const h = await headers();
   const userId = h.get("x-user-id");
@@ -130,12 +133,13 @@ export async function resolveSession(): Promise<{
     return null;
   }
 
-  return { user, session };
+  return { user, session, searchEnabled: cookie.searchEnabled ?? user.searchEnabled };
 }
 
 export async function requireSession(): Promise<{
   user: SessionUser;
   session: SessionRow;
+  searchEnabled: boolean;
 }> {
   const sessionResult = await resolveSession();
   if (!sessionResult) redirect("/login");
@@ -145,8 +149,9 @@ export async function requireSession(): Promise<{
 export async function requireAdmin(): Promise<{
   user: SessionUser;
   session: SessionRow;
+  searchEnabled: boolean;
 }> {
-  const { user, session } = await requireSession();
+  const { user, session, searchEnabled } = await requireSession();
   if (user.role !== "admin") redirect("/dashboard");
-  return { user, session };
+  return { user, session, searchEnabled };
 }

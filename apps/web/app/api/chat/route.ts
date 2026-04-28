@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
   const searchGated =
     decision.route === "chat" && decision.tools.includes("search")
-      ? session.user.searchEnabled && process.env.TAVILY_API_KEY
+      ? session.searchEnabled && process.env.TAVILY_API_KEY
         ? decision
         : {
             route: "escalate" as const,

@@ -41,7 +41,7 @@ export async function loginAction(
     return { error: "Invalid email or password." };
   }
 
-  await createSession(user.id, user.role, ip, userAgent);
+  await createSession(user.id, user.role, user.searchEnabled, ip, userAgent);
   await writeAuditLog({ event: "auth.login_succeeded", actorUserId: user.id, ipAddress: ip, userAgent });
 
   redirect("/dashboard");

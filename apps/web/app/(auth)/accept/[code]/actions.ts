@@ -70,7 +70,7 @@ export async function registerAction(
   await writeAuditLog({ event: "user.created", targetUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
   await writeAuditLog({ event: "invite.accepted", actorUserId: newUserId, inviteId: invite.id, ipAddress: ip, userAgent });
 
-  await createSession(newUserId, invite.role, ip, userAgent);
+  await createSession(newUserId, invite.role, true, ip, userAgent);
 
   redirect("/dashboard");
 }

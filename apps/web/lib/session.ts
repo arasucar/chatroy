@@ -7,6 +7,7 @@ export interface SessionData {
   userId: string;
   role: AppRole;
   expiresAt: number; // Unix ms
+  searchEnabled: boolean;
   stepUpVerifiedAt?: number;
 }
 
