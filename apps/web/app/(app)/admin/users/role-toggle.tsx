@@ -10,16 +10,10 @@ export function RoleToggle({ userId, currentRole }: { userId: string; currentRol
 
   return (
     <button
+      className="tp-btn tp-btn-ghost tp-btn-sm"
       disabled={pending}
       onClick={() => startTransition(() => changeRoleAction(userId, nextRole))}
-      style={{
-        background: "none",
-        border: "1px solid var(--border)",
-        borderRadius: 4,
-        padding: "0.2rem 0.6rem",
-        cursor: pending ? "not-allowed" : "pointer",
-        fontSize: "0.8rem",
-      }}
+      type="button"
     >
       {pending ? "Saving…" : `Make ${nextRole}`}
     </button>

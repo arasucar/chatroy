@@ -23,14 +23,23 @@ const nextUp = [
 
 export default function HomePage() {
   return (
-    <main className="shell">
-      <div className="frame">
-        <section className="hero">
-          <p className="eyebrow">roy / project 3 started</p>
-          <div className="hero-grid">
-            <div className="hero-copy">
-              <h1>Project 2 is done. Project 3 has started.</h1>
-              <p className="lede">
+    <main style={{ minHeight: "100vh", background: "var(--tp-surface-lowest)" }}>
+      <header className="tp-topbar">
+        <span className="tp-wordmark">CHATROY</span>
+        <nav className="tp-topbar-nav" aria-label="Public">
+          <a className="tp-nav-link" href="/login">Login</a>
+          <a className="tp-nav-link" href="/dashboard">Threads</a>
+          <a className="tp-nav-link" href="/settings">Settings</a>
+        </nav>
+      </header>
+
+      <div style={{ padding: "80px 40px 40px", maxWidth: 1160 }}>
+        <section style={{ marginBottom: 32 }}>
+          <p className="tp-page-sub">CHATROY / Project 3 Started</p>
+          <div className="tp-landing-grid">
+            <div>
+              <h1 className="tp-landing-title">Project 2 is done. Project 3 has started.</h1>
+              <p className="tp-landing-lede">
                 Invite-only auth, admin bootstrap, invite acceptance, role checks,
                 rate limiting, authenticated local chat, persisted mediator
                 runs, document ingestion, cited retrieval, explicit OpenAI
@@ -39,8 +48,8 @@ export default function HomePage() {
                 script-aware routing.
               </p>
             </div>
-            <div className="card">
-              <h2>What this proves</h2>
+            <div className="tp-section">
+              <h2 className="tp-section-title">What This Proves</h2>
               <p>
                 The app now has a real private chat surface, a deterministic
                 mediator boundary, an admin-visible run log, cited retrieval,
@@ -48,37 +57,37 @@ export default function HomePage() {
                 work is deeper Project 3 capability and stronger operations, not
                 missing Project 2 plumbing.
               </p>
-              <div className="badge-row">
-                <span className="badge">Invite-only</span>
-                <span className="badge">Local chat</span>
-                <span className="badge">Retrieval</span>
-                <span className="badge">Remote fallback</span>
-                <span className="badge">Cost tracking</span>
-                <span className="badge">Web search</span>
+              <div className="tp-badge-row">
+                <span className="tp-badge">Invite-only</span>
+                <span className="tp-badge">Local chat</span>
+                <span className="tp-badge">Retrieval</span>
+                <span className="tp-badge">Remote fallback</span>
+                <span className="tp-badge">Cost tracking</span>
+                <span className="tp-badge">Web search</span>
               </div>
             </div>
-            <div className="hero-actions">
-              <a className="pill" href="/login">
+            <div className="tp-action-grid">
+              <a className="tp-action-pill" href="/login">
                 <strong>/login</strong>
                 <span>enter the private app</span>
               </a>
-              <a className="pill" href="/dashboard">
+              <a className="tp-action-pill" href="/dashboard">
                 <strong>/dashboard</strong>
                 <span>chat with local retrieval enabled</span>
               </a>
-              <a className="pill" href="/admin/documents">
+              <a className="tp-action-pill" href="/admin/documents">
                 <strong>/admin/documents</strong>
                 <span>upload retrievable docs</span>
               </a>
-              <a className="pill" href="/settings">
+              <a className="tp-action-pill" href="/settings">
                 <strong>/settings</strong>
                 <span>save your remote API key</span>
               </a>
-              <a className="pill" href="/admin/scripts">
+              <a className="tp-action-pill" href="/admin/scripts">
                 <strong>/admin/scripts</strong>
                 <span>register script metadata</span>
               </a>
-              <a className="pill" href="/healthz">
+              <a className="tp-action-pill" href="/healthz">
                 <strong>/healthz</strong>
                 <span>container health probe</span>
               </a>
@@ -86,10 +95,10 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="status-grid">
-          <article className="card">
-            <h2>Compose services already wired</h2>
-            <ol className="service-list">
+        <section className="tp-card-grid">
+          <article className="tp-section">
+            <h2 className="tp-section-title">Compose Services Already Wired</h2>
+            <ol className="tp-list">
               {services.map((service) => (
                 <li key={service.name}>
                   <strong>{service.name}</strong>
@@ -100,9 +109,9 @@ export default function HomePage() {
             </ol>
           </article>
 
-          <article className="card">
-            <h2>Immediate next work</h2>
-            <ol className="todo-list">
+          <article className="tp-section">
+            <h2 className="tp-section-title">Immediate Next Work</h2>
+            <ol className="tp-list">
               {nextUp.map((item) => (
                 <li key={item}>{item}</li>
               ))}
@@ -110,9 +119,9 @@ export default function HomePage() {
           </article>
         </section>
 
-        <section className="detail-grid">
-          <article className="card">
-            <h3>Deployment path</h3>
+        <section className="tp-card-grid">
+          <article className="tp-section">
+            <h3 className="tp-section-title">Deployment Path</h3>
             <p>
               The same fresh-host and live-host overlays continue to work. Project 1
               already exposes a localhost streaming endpoint, while the web app now
@@ -120,8 +129,8 @@ export default function HomePage() {
             </p>
           </article>
 
-          <article className="card">
-            <h3>Current boundary</h3>
+          <article className="tp-section">
+            <h3 className="tp-section-title">Current Boundary</h3>
             <p>
               Project 2 scope is in place and Project 3 has begun with script
               registry authoring plus manual admin runs. What does not exist yet
@@ -130,9 +139,9 @@ export default function HomePage() {
           </article>
         </section>
 
-        <section className="status-grid">
-          <article className="card">
-            <h2>Data model carried into Project 3</h2>
+        <section className="tp-card-grid">
+          <article className="tp-section">
+            <h2 className="tp-section-title">Data Model Carried Into Project 3</h2>
             <p>
               Drizzle now defines the private app boundary end to end: users,
               sessions, invites, conversations, messages, auth audit logs,
@@ -140,41 +149,41 @@ export default function HomePage() {
               provider keys. Project 3 now adds both the script registry and
               persisted script run records for admin-triggered execution.
             </p>
-            <div className="badge-row">
-              <span className="badge">users</span>
-              <span className="badge">sessions</span>
-              <span className="badge">invites</span>
-              <span className="badge">conversations</span>
-              <span className="badge">messages</span>
-              <span className="badge">runs</span>
-              <span className="badge">documents</span>
-              <span className="badge">document_chunks</span>
-              <span className="badge">user_provider_keys</span>
-              <span className="badge">scripts</span>
-              <span className="badge">script_runs</span>
-              <span className="badge">auth_audit_logs</span>
+            <div className="tp-badge-row">
+              <span className="tp-badge">users</span>
+              <span className="tp-badge">sessions</span>
+              <span className="tp-badge">invites</span>
+              <span className="tp-badge">conversations</span>
+              <span className="tp-badge">messages</span>
+              <span className="tp-badge">runs</span>
+              <span className="tp-badge">documents</span>
+              <span className="tp-badge">document_chunks</span>
+              <span className="tp-badge">user_provider_keys</span>
+              <span className="tp-badge">scripts</span>
+              <span className="tp-badge">script_runs</span>
+              <span className="tp-badge">auth_audit_logs</span>
             </div>
           </article>
 
-          <article className="card">
-            <h2>Shared domain constants</h2>
+          <article className="tp-section">
+            <h2 className="tp-section-title">Shared Domain Constants</h2>
             <p>Roles and invite states now live in `packages/shared`.</p>
-            <div className="token-group">
+            <div style={{ display: "grid", gap: 18 }}>
               <div>
-                <strong>Roles</strong>
-                <div className="badge-row">
+                <strong className="tp-field-label">Roles</strong>
+                <div className="tp-badge-row">
                   {appRoleValues.map((role) => (
-                    <span key={role} className="badge">
+                    <span key={role} className="tp-badge">
                       {role}
                     </span>
                   ))}
                 </div>
               </div>
               <div>
-                <strong>Invite states</strong>
-                <div className="badge-row">
+                <strong className="tp-field-label">Invite States</strong>
+                <div className="tp-badge-row">
                   {inviteStatusValues.map((status) => (
-                    <span key={status} className="badge">
+                    <span key={status} className="tp-badge">
                       {status}
                     </span>
                   ))}
@@ -184,7 +193,7 @@ export default function HomePage() {
           </article>
         </section>
 
-        <p className="footnote">
+        <p className="tp-page-sub" style={{ marginTop: 32 }}>
           If this page is up, Project 2 is complete and Project 3 has begun with
           the script registry plus manual admin-run execution layer.
         </p>

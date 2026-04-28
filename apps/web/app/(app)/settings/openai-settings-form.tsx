@@ -24,48 +24,42 @@ export function OpenAISettingsForm({
   return (
     <div style={{ display: "grid", gap: "1rem", maxWidth: 520 }}>
       {!canStoreSecrets && (
-        <p style={{ color: "var(--accent)" }}>
+        <p className="tp-error-msg">
           USER_KEY_ENCRYPTION_KEY is not configured on the server, so remote keys cannot be stored yet.
         </p>
       )}
-      {state?.error && <p style={{ color: "var(--accent)" }}>{state.error}</p>}
-      {state?.success && <p style={{ color: "var(--muted)" }}>{state.success}</p>}
+      {state?.error && <p className="tp-error-msg">{state.error}</p>}
+      {state?.success && <p className="tp-success-msg">{state.success}</p>}
 
       <form action={formAction} style={{ display: "grid", gap: "1rem" }}>
-        <label style={{ display: "grid", gap: "0.25rem" }}>
-          <span>OpenAI API key</span>
+        <label className="tp-field">
+          <span className="tp-field-label">OpenAI API Key</span>
           <input
+            className="tp-input"
             name="apiKey"
             type="password"
             placeholder={keyHint ? `Stored key ending in ${keyHint}` : "sk-..."}
             disabled={!canStoreSecrets || pending}
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           />
         </label>
 
-        <label style={{ display: "grid", gap: "0.25rem" }}>
-          <span>Default remote model</span>
+        <label className="tp-field">
+          <span className="tp-field-label">Default Remote Model</span>
           <select
+            className="tp-select"
             name="defaultModel"
             defaultValue={defaultModel}
             disabled={!canStoreSecrets || pending}
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           >
             <option value="gpt-5-mini">gpt-5-mini</option>
           </select>
         </label>
 
         <button
+          className="tp-btn tp-btn-primary"
           type="submit"
           disabled={!canStoreSecrets || pending}
-          style={{
-            padding: "0.6rem 1.2rem",
-            background: "var(--accent)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            cursor: pending ? "not-allowed" : "pointer",
-          }}
+          style={{ justifySelf: "start" }}
         >
           {pending ? "Saving…" : keyHint ? "Update OpenAI key" : "Save OpenAI key"}
         </button>
@@ -74,15 +68,8 @@ export function OpenAISettingsForm({
       {keyHint && (
         <form action={deleteOpenAISettingsAction}>
           <button
+            className="tp-btn tp-btn-danger"
             type="submit"
-            style={{
-              justifySelf: "start",
-              padding: "0.5rem 0.9rem",
-              border: "1px solid var(--border)",
-              borderRadius: 4,
-              background: "transparent",
-              cursor: "pointer",
-            }}
           >
             Remove OpenAI key
           </button>

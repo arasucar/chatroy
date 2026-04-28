@@ -9,15 +9,21 @@ export default async function SettingsPage() {
   const canStoreSecrets = hasUserKeyEncryptionConfigured();
 
   return (
-    <main style={{ padding: "2rem", maxWidth: 720 }}>
-      <h1 style={{ marginBottom: "1rem" }}>Settings</h1>
-      <p style={{ marginBottom: "2rem", color: "var(--muted)" }}>
-        Configure optional remote providers. Local chat remains the default path; remote
-        fallback is only used when the mediator decides a request should escalate.
-      </p>
+    <main className="tp-page">
+      <h1 className="tp-page-title">System Configuration</h1>
+      <p className="tp-page-sub">Interface & API bridge · Remote provider management</p>
 
-      <section>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>OpenAI</h2>
+      <section className="tp-section">
+        <h2
+          style={{
+            margin: "0 0 16px",
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          OpenAI Bridge
+        </h2>
         <OpenAISettingsForm
           keyHint={openaiKey?.keyHint ?? null}
           defaultModel={openaiKey?.defaultModel ?? "gpt-5-mini"}

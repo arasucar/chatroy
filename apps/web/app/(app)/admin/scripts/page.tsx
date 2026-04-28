@@ -5,47 +5,68 @@ export default async function AdminScriptsPage() {
   const allScripts = await listScripts();
 
   return (
-    <main style={{ padding: "2rem", maxWidth: 1080 }}>
-      <h1 style={{ marginBottom: "2rem" }}>Scripts</h1>
+    <main>
+      <h1 className="tp-page-title">Script Registry</h1>
+      <p className="tp-page-sub">Controlled command bridge · Step-up execution policy</p>
 
-      <section style={{ marginBottom: "2.5rem" }}>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>Register script</h2>
+      <section className="tp-section" style={{ marginBottom: 32, maxWidth: 840 }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>
+          Register Script
+        </h2>
         <CreateScriptForm />
       </section>
 
-      <section>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>Registered scripts</h2>
+      <section className="tp-section" style={{ maxWidth: 1080 }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>
+          Registered Scripts
+        </h2>
         {allScripts.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No scripts registered yet.</p>
+          <p className="tp-mono">No scripts registered yet.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+          <table className="tp-table">
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-                <th style={{ padding: "0.5rem" }}>Name</th>
-                <th style={{ padding: "0.5rem" }}>Command</th>
-                <th style={{ padding: "0.5rem" }}>Enabled</th>
-                <th style={{ padding: "0.5rem" }}>Step-up</th>
-                <th style={{ padding: "0.5rem" }}>Params</th>
-                <th style={{ padding: "0.5rem" }}>Updated</th>
+              <tr>
+                <th>Name</th>
+                <th>Command</th>
+                <th>Enabled</th>
+                <th>Step-up</th>
+                <th>Params</th>
+                <th>Updated</th>
               </tr>
             </thead>
             <tbody>
               {allScripts.map((script) => (
-                <tr key={script.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "0.5rem" }}>
-                    <strong>{script.name}</strong>
+                <tr key={script.id}>
+                  <td>
+                    <strong style={{ color: "var(--tp-on-surface)" }}>{script.name}</strong>
                     {script.description && (
-                      <div style={{ color: "var(--muted)", marginTop: "0.25rem" }}>{script.description}</div>
+                      <div style={{ color: "var(--tp-outline)", marginTop: 4 }}>
+                        {script.description}
+                      </div>
                     )}
                   </td>
-                  <td style={{ padding: "0.5rem", fontFamily: "monospace" }}>{script.command}</td>
-                  <td style={{ padding: "0.5rem" }}>{script.enabled ? "yes" : "no"}</td>
-                  <td style={{ padding: "0.5rem" }}>{script.requiresStepUp ? "required" : "no"}</td>
-                  <td style={{ padding: "0.5rem" }}>
+                  <td className="tp-mono">{script.command}</td>
+                  <td>
+                    <span className={script.enabled ? "tp-badge tp-badge-ok" : "tp-badge tp-badge-error"}>
+                      {script.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={script.requiresStepUp ? "tp-badge tp-badge-warn" : "tp-badge"}>
+                      {script.requiresStepUp ? "Required" : "No"}
+                    </span>
+                  </td>
+                  <td>
                     {Array.isArray(script.paramsSchema) ? script.paramsSchema.length : 0}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>
-                    <a href={`/admin/scripts/${script.id}`}>{script.updatedAt.toLocaleString()}</a>
+                  <td>
+                    <a
+                      className="tp-mono"
+                      href={`/admin/scripts/${script.id}`}
+                      style={{ color: "var(--tp-primary)" }}
+                    >
+                      {script.updatedAt.toLocaleString()}
+                    </a>
                   </td>
                 </tr>
               ))}

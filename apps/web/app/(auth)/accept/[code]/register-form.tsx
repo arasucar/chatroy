@@ -18,61 +18,55 @@ export function RegisterForm({ code, targetEmail }: Props) {
   return (
     <>
       {state?.rateLimited && (
-        <p style={{ color: "var(--accent)", marginBottom: "1rem" }}>
+        <p className="tp-error-msg">
           Too many attempts. Try again later.
         </p>
       )}
       {state?.error && (
-        <p style={{ color: "var(--accent)", marginBottom: "1rem" }}>{state.error}</p>
+        <p className="tp-error-msg">{state.error}</p>
       )}
 
       <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <span>Email</span>
+        <label className="tp-field">
+          <span className="tp-field-label">Email</span>
           <input
+            className="tp-input"
             name="email"
             type="email"
             required
             defaultValue={targetEmail ?? ""}
             readOnly={!!targetEmail}
             autoComplete="email"
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           />
         </label>
 
-        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <span>Display name</span>
+        <label className="tp-field">
+          <span className="tp-field-label">Display Name</span>
           <input
+            className="tp-input"
             name="displayName"
             type="text"
             autoComplete="name"
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           />
         </label>
 
-        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <span>Password</span>
+        <label className="tp-field">
+          <span className="tp-field-label">Password</span>
           <input
+            className="tp-input"
             name="password"
             type="password"
             required
             minLength={8}
             autoComplete="new-password"
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           />
         </label>
 
         <button
+          className="tp-btn tp-btn-primary"
           type="submit"
           disabled={pending}
-          style={{
-            padding: "0.6rem 1.2rem",
-            background: "var(--accent)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 4,
-            cursor: pending ? "not-allowed" : "pointer",
-          }}
+          style={{ width: "100%", padding: 12 }}
         >
           {pending ? "Creating account…" : "Create account"}
         </button>

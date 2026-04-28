@@ -27,55 +27,69 @@ export function CreateScriptForm() {
 
   return (
     <form action={formAction} style={{ display: "grid", gap: "1rem", maxWidth: 680 }}>
-      {state?.error && <p style={{ color: "var(--accent)" }}>{state.error}</p>}
-      {state?.success && <p style={{ color: "var(--muted)" }}>{state.success}</p>}
+      {state?.error && <p className="tp-error-msg">{state.error}</p>}
+      {state?.success && <p className="tp-success-msg">{state.success}</p>}
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        <span>Name</span>
-        <input name="name" type="text" style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }} />
+      <label className="tp-field">
+        <span className="tp-field-label">Name</span>
+        <input className="tp-input" name="name" type="text" />
       </label>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        <span>Description</span>
-        <textarea name="description" rows={3} style={{ padding: "0.75rem", border: "1px solid var(--border)", borderRadius: 4 }} />
+      <label className="tp-field">
+        <span className="tp-field-label">Description</span>
+        <textarea className="tp-input" name="description" rows={3} />
       </label>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        <span>Command</span>
-        <input name="command" type="text" placeholder="/usr/bin/systemctl" style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }} />
+      <label className="tp-field">
+        <span className="tp-field-label">Command</span>
+        <input className="tp-input" name="command" type="text" placeholder="/usr/bin/systemctl" />
       </label>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        <span>Argv template (JSON array)</span>
-        <textarea name="argvTemplate" defaultValue={exampleArgv} rows={5} style={{ padding: "0.75rem", border: "1px solid var(--border)", borderRadius: 4, fontFamily: "monospace" }} />
+      <label className="tp-field">
+        <span className="tp-field-label">Argv Template (JSON Array)</span>
+        <textarea
+          className="tp-input"
+          name="argvTemplate"
+          defaultValue={exampleArgv}
+          rows={5}
+          style={{ fontFamily: "'Space Grotesk', monospace" }}
+        />
       </label>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        <span>Params schema (JSON array)</span>
-        <textarea name="paramsSchema" defaultValue={exampleParams} rows={10} style={{ padding: "0.75rem", border: "1px solid var(--border)", borderRadius: 4, fontFamily: "monospace" }} />
+      <label className="tp-field">
+        <span className="tp-field-label">Params Schema (JSON Array)</span>
+        <textarea
+          className="tp-input"
+          name="paramsSchema"
+          defaultValue={exampleParams}
+          rows={10}
+          style={{ fontFamily: "'Space Grotesk', monospace" }}
+        />
       </label>
 
-      <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-        <input name="enabled" type="checkbox" defaultChecked />
-        <span>Enabled</span>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+        <span className="tp-toggle">
+          <input name="enabled" type="checkbox" defaultChecked />
+          <span className="tp-toggle-track" />
+          <span className="tp-toggle-thumb" />
+        </span>
+        <span className="tp-mono">Enabled</span>
       </label>
 
-      <label style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-        <input name="requiresStepUp" type="checkbox" />
-        <span>Require recent password confirmation before execution</span>
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+        <span className="tp-toggle">
+          <input name="requiresStepUp" type="checkbox" />
+          <span className="tp-toggle-track" />
+          <span className="tp-toggle-thumb" />
+        </span>
+        <span className="tp-mono">Require recent password confirmation before execution</span>
       </label>
 
       <button
+        className="tp-btn tp-btn-primary"
         type="submit"
         disabled={pending}
-        style={{
-          padding: "0.6rem 1.2rem",
-          background: "var(--accent)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 4,
-          cursor: pending ? "not-allowed" : "pointer",
-        }}
+        style={{ justifySelf: "start" }}
       >
         {pending ? "Saving…" : "Register script"}
       </button>

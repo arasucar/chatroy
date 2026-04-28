@@ -14,43 +14,37 @@ export function CreateDocumentForm() {
       action={formAction}
       style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 560 }}
     >
-      {state?.error && <p style={{ color: "var(--accent)" }}>{state.error}</p>}
-      {state?.success && <p style={{ color: "var(--muted)" }}>{state.success}</p>}
+      {state?.error && <p className="tp-error-msg">{state.error}</p>}
+      {state?.success && <p className="tp-success-msg">{state.success}</p>}
 
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-        <span>Title (optional)</span>
+      <label className="tp-field">
+        <span className="tp-field-label">Title (Optional)</span>
         <input
+          className="tp-input"
           name="title"
           type="text"
-          style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
         />
       </label>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-        <span>Upload text or markdown</span>
-        <input name="file" type="file" accept=".txt,.md,text/plain,text/markdown" />
+      <label className="tp-field">
+        <span className="tp-field-label">Upload Text Or Markdown</span>
+        <input className="tp-file-input" name="file" type="file" accept=".txt,.md,text/plain,text/markdown" />
       </label>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-        <span>Or paste document text</span>
+      <label className="tp-field">
+        <span className="tp-field-label">Or Paste Document Text</span>
         <textarea
+          className="tp-input"
           name="rawText"
           rows={10}
-          style={{ padding: "0.75rem", border: "1px solid var(--border)", borderRadius: 4 }}
         />
       </label>
 
       <button
+        className="tp-btn tp-btn-primary"
         type="submit"
         disabled={pending}
-        style={{
-          padding: "0.6rem 1.2rem",
-          background: "var(--accent)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 4,
-          cursor: pending ? "not-allowed" : "pointer",
-        }}
+        style={{ justifySelf: "start" }}
       >
         {pending ? "Indexing…" : "Upload and index"}
       </button>

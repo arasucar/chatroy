@@ -5,35 +5,42 @@ export default async function AdminDocumentsPage() {
   const allDocuments = await listDocuments(100);
 
   return (
-    <main style={{ padding: "2rem", maxWidth: 960 }}>
-      <h1 style={{ marginBottom: "2rem" }}>Documents</h1>
+    <main>
+      <h1 className="tp-page-title">Document Index</h1>
+      <p className="tp-page-sub">Retrieval corpus · Local embedding pipeline</p>
 
-      <section style={{ marginBottom: "2.5rem" }}>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>Upload for retrieval</h2>
+      <section className="tp-section" style={{ marginBottom: 32, maxWidth: 760 }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>
+          Upload For Retrieval
+        </h2>
         <CreateDocumentForm />
       </section>
 
-      <section>
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>Indexed documents</h2>
+      <section className="tp-section" style={{ maxWidth: 960 }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>
+          Indexed Documents
+        </h2>
         {allDocuments.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No documents indexed yet.</p>
+          <p className="tp-mono">No documents indexed yet.</p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+          <table className="tp-table">
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-                <th style={{ padding: "0.5rem" }}>Title</th>
-                <th style={{ padding: "0.5rem" }}>Source</th>
-                <th style={{ padding: "0.5rem" }}>Chunks</th>
-                <th style={{ padding: "0.5rem" }}>Updated</th>
+              <tr>
+                <th>Title</th>
+                <th>Source</th>
+                <th>Chunks</th>
+                <th>Updated</th>
               </tr>
             </thead>
             <tbody>
               {allDocuments.map((document) => (
-                <tr key={document.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "0.5rem" }}>{document.title}</td>
-                  <td style={{ padding: "0.5rem" }}>{document.sourceName ?? "—"}</td>
-                  <td style={{ padding: "0.5rem" }}>{document.chunkCount}</td>
-                  <td style={{ padding: "0.5rem" }}>{document.updatedAt.toLocaleString()}</td>
+                <tr key={document.id}>
+                  <td style={{ color: "var(--tp-on-surface)" }}>{document.title}</td>
+                  <td>{document.sourceName ?? "—"}</td>
+                  <td>
+                    <span className="tp-badge">{document.chunkCount}</span>
+                  </td>
+                  <td className="tp-mono">{document.updatedAt.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

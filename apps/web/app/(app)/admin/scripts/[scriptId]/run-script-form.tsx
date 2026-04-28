@@ -21,32 +21,32 @@ export function RunScriptForm({
 
   return (
     <form action={formAction} style={{ display: "grid", gap: "1rem", maxWidth: 520 }}>
-      {state?.error && <p style={{ color: "var(--accent)" }}>{state.error}</p>}
-      {state?.success && <p style={{ color: "var(--muted)" }}>{state.success}</p>}
+      {state?.error && <p className="tp-error-msg">{state.error}</p>}
+      {state?.success && <p className="tp-success-msg">{state.success}</p>}
 
       {requiresStepUp && (
-        <label style={{ display: "grid", gap: "0.25rem" }}>
-          <span>Confirm your password</span>
+        <label className="tp-field">
+          <span className="tp-field-label">Confirm Your Password</span>
           <input
+            className="tp-input"
             name="password"
             type="password"
             autoComplete="current-password"
-            style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
           />
         </label>
       )}
 
       {paramsSchema.length === 0 ? (
-        <p style={{ color: "var(--muted)" }}>This script does not require params.</p>
+        <p className="tp-mono">This script does not require params.</p>
       ) : (
         paramsSchema.map((param) => (
-          <label key={param.name} style={{ display: "grid", gap: "0.25rem" }}>
-            <span>{param.label}</span>
+          <label key={param.name} className="tp-field">
+            <span className="tp-field-label">{param.label}</span>
             {param.type === "enum" ? (
               <select
+                className="tp-select"
                 name={param.name}
                 defaultValue={param.options?.[0] ?? ""}
-                style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
               >
                 {(param.options ?? []).map((option) => (
                   <option key={option} value={option}>
@@ -55,32 +55,30 @@ export function RunScriptForm({
                 ))}
               </select>
             ) : param.type === "boolean" ? (
-              <input name={param.name} type="checkbox" />
+              <span className="tp-toggle">
+                <input name={param.name} type="checkbox" />
+                <span className="tp-toggle-track" />
+                <span className="tp-toggle-thumb" />
+              </span>
             ) : (
               <input
+                className="tp-input"
                 name={param.name}
                 type={param.type === "number" ? "number" : "text"}
-                style={{ padding: "0.5rem", border: "1px solid var(--border)", borderRadius: 4 }}
               />
             )}
             {param.description && (
-              <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>{param.description}</span>
+              <span className="tp-mono" style={{ textTransform: "none" }}>{param.description}</span>
             )}
           </label>
         ))
       )}
 
       <button
+        className="tp-btn tp-btn-primary"
         type="submit"
         disabled={pending}
-        style={{
-          padding: "0.6rem 1.2rem",
-          background: "var(--accent)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 4,
-          cursor: pending ? "not-allowed" : "pointer",
-        }}
+        style={{ justifySelf: "start" }}
       >
         {pending ? "Running…" : "Run script"}
       </button>

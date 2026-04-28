@@ -376,72 +376,33 @@ export function ChatWorkspace({
     }
   }
 
+  const modelLabel = pending ? "Streaming" : "Local qwen2.5";
+  const statusNote = pending
+    ? "Streaming response..."
+    : stepUpRequest
+      ? `Password confirmation required for ${stepUpRequest.scriptName}`
+      : useRetrieval && documents.length > 0
+        ? "Knowledge base retrieval enabled"
+        : "Authenticated users only";
+
   return (
-    <div className="chat-frame">
+    <div className="chat-shell">
       <aside className="chat-sidebar">
-        <div className="chat-sidebar-head">
-          <div>
-            <p className="eyebrow" style={{ marginBottom: "0.35rem" }}>
-              Phase 3 / Local Chat
-            </p>
-            <h1 className="chat-title">Hello, {userLabel}</h1>
-          </div>
-          <button
-            className="chat-secondary-button"
-            onClick={startNewConversation}
-            type="button"
-          >
-            New chat
-          </button>
-        </div>
+        <button
+          className="chat-sidebar-new-btn"
+          disabled={pending || stepUpPending}
+          onClick={startNewConversation}
+          type="button"
+        >
+          + New Chat
+        </button>
 
+        <p className="chat-section-label">Recent Threads</p>
         <div className="chat-conversation-list">
-          <div
-            style={{
-              padding: "14px 16px",
-              borderRadius: 18,
-              border: "1px solid var(--border)",
-              background: "rgba(255, 250, 240, 0.58)",
-            }}
-          >
-            <div className="chat-toggle-row">
-              <strong>Knowledge base</strong>
-              <label className="chat-toggle-label">
-                <input
-                  checked={useRetrieval}
-                  disabled={documents.length === 0 || pending}
-                  onChange={(event) => setUseRetrieval(event.target.checked)}
-                  type="checkbox"
-                />
-                <span>Use docs</span>
-              </label>
-            </div>
-            {documents.length === 0 ? (
-              <p className="chat-empty-note" style={{ marginTop: "0.75rem" }}>
-                No uploaded documents yet.
-              </p>
-            ) : (
-              <div className="chat-doc-list">
-                {documents.slice(0, 6).map((document) => (
-                  <div key={document.id} className="chat-doc-item">
-                    <strong>{document.title}</strong>
-                    <span>
-                      {document.chunkCount} chunks
-                      {document.sourceName ? ` · ${document.sourceName}` : ""}
-                    </span>
-                  </div>
-                ))}
-                {canManageDocuments && (
-                  <a className="chat-doc-link" href="/admin/documents">
-                    Manage documents
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-
           {conversations.length === 0 ? (
-            <p className="chat-empty-note">No saved conversations yet.</p>
+            <p className="chat-empty-note" style={{ padding: "10px 14px" }}>
+              No saved conversations yet.
+            </p>
           ) : (
             conversations.map((conversation) => (
               <button
@@ -461,107 +422,142 @@ export function ChatWorkspace({
             ))
           )}
         </div>
+
+        <div className="chat-sidebar-footer">
+          <p className="chat-section-label" style={{ padding: "0 0 8px" }}>
+            Knowledge Base
+          </p>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <span className="tp-mono">Use docs</span>
+            <span className="tp-toggle">
+              <input
+                checked={useRetrieval}
+                disabled={documents.length === 0 || pending}
+                onChange={(event) => setUseRetrieval(event.target.checked)}
+                type="checkbox"
+              />
+              <span className="tp-toggle-track" />
+              <span className="tp-toggle-thumb" />
+            </span>
+          </label>
+          {documents.length === 0 ? (
+            <p className="chat-empty-note" style={{ marginTop: 10 }}>
+              No uploaded documents yet.
+            </p>
+          ) : (
+            <div className="chat-doc-list">
+              {documents.slice(0, 6).map((document) => (
+                <div key={document.id} className="chat-doc-item">
+                  <strong>{document.title}</strong>
+                  <span>
+                    {document.chunkCount} chunks
+                    {document.sourceName ? ` · ${document.sourceName}` : ""}
+                  </span>
+                </div>
+              ))}
+              {canManageDocuments && (
+                <a className="chat-doc-link" href="/admin/documents">
+                  Manage documents
+                </a>
+              )}
+            </div>
+          )}
+        </div>
       </aside>
 
-      <section className="chat-panel">
-        <div className="chat-panel-head">
-          <div>
-            <p className="chat-kicker">Default local model</p>
-            <h2>qwen2.5:7b-instruct-q4_K_M</h2>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <p className="chat-kicker">
-              Private, authenticated, and provider-aware. Retrieval stays inside the chat route.
-            </p>
-            {currentConversation?.costSummary && currentConversation.costSummary.totalTokens > 0 && (
-              <p className="chat-kicker">
-                Remote usage: {currentConversation.costSummary.totalTokens.toLocaleString()} tokens
-                {" · "}
-                ${currentConversation.costSummary.estimatedCostUsd.toFixed(4)}
-              </p>
+      <main className="chat-panel">
+        <div className="chat-message-list">
+          <div className="chat-message-inner">
+            {messages.length === 0 ? (
+              <div className="chat-empty-state">
+                <h3>Protocol Ready</h3>
+                <p>
+                  Hello, {userLabel}. Messages persist to Postgres and route through
+                  the local engine by default.
+                </p>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={
+                    message.role === "assistant"
+                      ? "chat-message chat-message-assistant"
+                      : "chat-message"
+                  }
+                >
+                  <div className="chat-message-meta">
+                    <div
+                      className={
+                        message.role === "user"
+                          ? "chat-avatar chat-avatar-user"
+                          : "chat-avatar chat-avatar-sys"
+                      }
+                    >
+                      {message.role === "user" ? "USR" : "SYS"}
+                    </div>
+                    <span className="chat-message-timestamp">
+                      {formatTimestamp(message.createdAt)}
+                    </span>
+                    {message.model && <span className="tp-mono">{message.model}</span>}
+                  </div>
+                  <div className="chat-message-body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                  </div>
+                  {message.citations && message.citations.length > 0 && (
+                    <div className="chat-citation-list">
+                      <p className="chat-citation-label">Retrieved sources</p>
+                      {message.citations.map((citation, index) => (
+                        <div key={citation.chunkId} className="chat-citation-item">
+                          <span className="chat-citation-index">[{index + 1}]</span>
+                          <div>
+                            <strong>{citation.documentTitle}</strong>
+                            {citation.source === "search" && (
+                              <span className="chat-citation-badge">Web</span>
+                            )}
+                            <span>{citation.excerpt}</span>
+                            {citation.url && (
+                              <a
+                                className="chat-citation-link"
+                                href={citation.url}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                {citation.url}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))
             )}
           </div>
         </div>
 
-        <div className="chat-message-list">
-          {messages.length === 0 ? (
-            <div className="chat-empty-state">
-              <h3>Start the first conversation</h3>
-              <p>
-                Messages are saved to Postgres and the assistant responds through the
-                local Ollama service.
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <article
-                key={message.id}
-                className={
-                  message.role === "user"
-                    ? "chat-message chat-message-user"
-                    : "chat-message chat-message-assistant"
-                }
-              >
-                <div className="chat-message-meta">
-                  <strong>{message.role === "user" ? "You" : "roy"}</strong>
-                  <span>
-                    {formatTimestamp(message.createdAt)}
-                    {message.model ? ` · ${message.model}` : ""}
-                  </span>
-                </div>
-                <div className="chat-message-body">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-                </div>
-                {message.citations && message.citations.length > 0 && (
-                  <div className="chat-citation-list">
-                    <p className="chat-citation-label">Retrieved sources</p>
-                    {message.citations.map((citation, index) => (
-                      <div key={citation.chunkId} className="chat-citation-item">
-                        <strong>
-                          [{index + 1}] {citation.documentTitle}
-                        </strong>
-                        {citation.source === "search" && (
-                          <span className="chat-citation-badge">Web</span>
-                        )}
-                        <span>{citation.excerpt}</span>
-                        {citation.url && (
-                          <a className="chat-citation-link" href={citation.url} rel="noreferrer" target="_blank">
-                            {citation.url}
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))
-          )}
-        </div>
-
-        <form className="chat-composer" onSubmit={handleSubmit}>
+        <form className="chat-input-area" onSubmit={handleSubmit}>
           {error && <p className="chat-error">{error}</p>}
           {stepUpRequest && (
-            <div
-              style={{
-                display: "grid",
-                gap: "0.75rem",
-                padding: "0.9rem 1rem",
-                borderRadius: 16,
-                border: "1px solid var(--border)",
-                background: "rgba(255, 245, 235, 0.9)",
-              }}
-            >
+            <div className="chat-stepup">
               <div>
-                <p className="chat-kicker">Sensitive script</p>
-                <strong>{stepUpRequest.scriptName}</strong>
-                <p className="chat-empty-note" style={{ marginTop: "0.35rem" }}>
-                  Confirm your password to run this script, then the original prompt will retry automatically.
+                <p className="chat-stepup-title">Sensitive script</p>
+                <p className="chat-stepup-name">{stepUpRequest.scriptName}</p>
+                <p className="chat-stepup-note">
+                  Confirm your password, then the original prompt retries automatically.
                 </p>
               </div>
-              <div
-                style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}
-              >
+              <div className="chat-stepup-row">
                 <input
+                  className="tp-input"
                   type="password"
                   value={stepUpPassword}
                   onChange={(event) => setStepUpPassword(event.target.value)}
@@ -573,17 +569,10 @@ export function ChatWorkspace({
                   }}
                   placeholder="Current password"
                   autoComplete="current-password"
-                  style={{
-                    flex: "1 1 240px",
-                    minWidth: 220,
-                    padding: "0.75rem 0.9rem",
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "rgba(255,255,255,0.9)",
-                  }}
+                  style={{ flex: "1 1 240px", minWidth: 220 }}
                 />
                 <button
-                  className="chat-primary-button"
+                  className="tp-btn tp-btn-primary"
                   disabled={stepUpPending || !stepUpPassword.trim()}
                   onClick={() => void handleStepUpSubmit()}
                   type="button"
@@ -591,7 +580,7 @@ export function ChatWorkspace({
                   {stepUpPending ? "Confirming..." : "Confirm and run"}
                 </button>
                 <button
-                  className="chat-secondary-button"
+                  className="tp-btn tp-btn-ghost"
                   disabled={stepUpPending}
                   onClick={() => {
                     setStepUpRequest(null);
@@ -604,34 +593,39 @@ export function ChatWorkspace({
               </div>
             </div>
           )}
-          <textarea
-            className="chat-input"
-            disabled={pending || stepUpPending}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Ask the local model something useful."
-            rows={4}
-            value={prompt}
-          />
-          <div className="chat-composer-foot">
-            <p className="chat-kicker">
-              {pending
-                ? "Streaming response..."
-                : stepUpRequest
-                  ? `Password confirmation required for ${stepUpRequest.scriptName}`
-                : useRetrieval && documents.length > 0
-                  ? "Knowledge base retrieval enabled"
-                  : "Authenticated users only"}
-            </p>
-            <button
-              className="chat-primary-button"
-              disabled={pending || stepUpPending || !prompt.trim()}
-              type="submit"
-            >
-              {pending ? "Sending..." : "Send"}
-            </button>
+
+          <div className="chat-input-inner">
+            <div className="tp-chip" style={{ marginBottom: 8 }}>
+              <div className="tp-chip-dot" />
+              <span>
+                {currentConversation?.costSummary &&
+                currentConversation.costSummary.totalTokens > 0
+                  ? `${currentConversation.costSummary.totalTokens.toLocaleString()} tokens · $${currentConversation.costSummary.estimatedCostUsd.toFixed(4)}`
+                  : modelLabel}
+              </span>
+            </div>
+            <div className="chat-input-box">
+              <textarea
+                className="chat-input"
+                disabled={pending || stepUpPending}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Ask the local model something useful."
+                rows={2}
+                value={prompt}
+              />
+              <button
+                className="chat-send-btn"
+                disabled={pending || stepUpPending || !prompt.trim()}
+                aria-label="Send message"
+                type="submit"
+              >
+                ↑
+              </button>
+            </div>
+            <p className="chat-footer-note">{statusNote}</p>
           </div>
         </form>
-      </section>
+      </main>
     </div>
   );
 }

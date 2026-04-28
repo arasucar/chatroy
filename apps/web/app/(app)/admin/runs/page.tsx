@@ -28,25 +28,27 @@ export default async function AdminRunsPage() {
   const scriptById = new Map(knownScripts.map((s) => [s.id, s]));
 
   return (
-    <main style={{ padding: "2rem", maxWidth: 1200 }}>
-      <h1 style={{ marginBottom: "2rem" }}>Mediator runs</h1>
-      {recentRuns.length === 0 ? (
-        <p style={{ color: "var(--muted)" }}>No runs recorded yet.</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+    <main>
+      <h1 className="tp-page-title">Mediator Runs</h1>
+      <p className="tp-page-sub">Routing decisions · Provider usage · Tool telemetry</p>
+      <section className="tp-section" style={{ maxWidth: 1280, overflowX: "auto" }}>
+        {recentRuns.length === 0 ? (
+          <p className="tp-mono">No runs recorded yet.</p>
+        ) : (
+        <table className="tp-table">
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-              <th style={{ padding: "0.5rem" }}>When</th>
-              <th style={{ padding: "0.5rem" }}>User</th>
-              <th style={{ padding: "0.5rem" }}>Conversation</th>
-              <th style={{ padding: "0.5rem" }}>Route</th>
-              <th style={{ padding: "0.5rem" }}>Provider</th>
-              <th style={{ padding: "0.5rem" }}>Status</th>
-              <th style={{ padding: "0.5rem" }}>Model</th>
-              <th style={{ padding: "0.5rem" }}>Usage</th>
-              <th style={{ padding: "0.5rem" }}>Cost</th>
-              <th style={{ padding: "0.5rem" }}>Reason / Script</th>
-              <th style={{ padding: "0.5rem" }}>Tools</th>
+            <tr>
+              <th>When</th>
+              <th>User</th>
+              <th>Conversation</th>
+              <th>Route</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th>Model</th>
+              <th>Usage</th>
+              <th>Cost</th>
+              <th>Reason / Script</th>
+              <th>Tools</th>
             </tr>
           </thead>
           <tbody>
@@ -56,45 +58,44 @@ export default async function AdminRunsPage() {
               const script = run.scriptId ? scriptById.get(run.scriptId) : null;
 
               return (
-                <tr key={run.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "0.5rem", whiteSpace: "nowrap" }}>
+                <tr key={run.id}>
+                  <td className="tp-mono" style={{ whiteSpace: "nowrap" }}>
                     {run.createdAt.toLocaleString()}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>{user?.email ?? run.userId.slice(0, 8)}</td>
-                  <td style={{ padding: "0.5rem" }}>
+                  <td>{user?.email ?? run.userId.slice(0, 8)}</td>
+                  <td>
                     {conversation?.title ?? run.conversationId.slice(0, 8)}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: run.route === "script" ? "var(--accent)" : "inherit",
-                      }}
-                    >
+                  <td>
+                    <span className={run.route === "script" ? "tp-badge tp-badge-warn" : "tp-badge"}>
                       {run.route}
                     </span>
                   </td>
-                  <td style={{ padding: "0.5rem" }}>{run.provider}</td>
-                  <td style={{ padding: "0.5rem" }}>{run.status}</td>
-                  <td style={{ padding: "0.5rem" }}>{run.model ?? "—"}</td>
-                  <td style={{ padding: "0.5rem" }}>
+                  <td>{run.provider}</td>
+                  <td>
+                    <span className={run.status === "completed" ? "tp-badge tp-badge-ok" : "tp-badge tp-badge-error"}>
+                      {run.status}
+                    </span>
+                  </td>
+                  <td className="tp-mono">{run.model ?? "—"}</td>
+                  <td>
                     {run.totalTokens ? `${run.totalTokens.toLocaleString()} tok` : "—"}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>
+                  <td>
                     {typeof run.estimatedCostUsd === "number"
                       ? `$${run.estimatedCostUsd.toFixed(4)}`
                       : "—"}
                   </td>
-                  <td style={{ padding: "0.5rem", color: "var(--muted)" }}>
+                  <td>
                     {script ? (
-                      <a href={`/admin/scripts/${script.id}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
+                      <a href={`/admin/scripts/${script.id}`} style={{ color: "var(--tp-primary)", fontWeight: 600 }}>
                         {script.name}
                       </a>
                     ) : (
                       run.decisionReason ?? run.errorMessage ?? "—"
                     )}
                   </td>
-                  <td style={{ padding: "0.5rem" }}>
+                  <td>
                     {Array.isArray(run.toolsUsed) && run.toolsUsed.length > 0
                       ? run.toolsUsed.join(", ")
                       : "—"}
@@ -104,7 +105,8 @@ export default async function AdminRunsPage() {
             })}
           </tbody>
         </table>
-      )}
+        )}
+      </section>
     </main>
   );
 }

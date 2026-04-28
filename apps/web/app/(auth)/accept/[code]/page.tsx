@@ -21,10 +21,10 @@ export default async function AcceptPage({ params }: Props) {
 
   if (!invite) {
     return (
-      <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ maxWidth: 400, textAlign: "center", padding: "2rem" }}>
-          <h1>Invite not valid</h1>
-          <p style={{ color: "var(--muted)", marginTop: "0.5rem" }}>
+      <main className="tp-auth-shell">
+        <div className="tp-auth-card" style={{ textAlign: "center" }}>
+          <h1 className="tp-page-title">Invite Not Valid</h1>
+          <p className="tp-page-sub" style={{ marginBottom: 0 }}>
             This invite link has expired, already been used, or doesn&apos;t exist.
           </p>
         </div>
@@ -33,11 +33,11 @@ export default async function AcceptPage({ params }: Props) {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: 400, padding: "2rem" }}>
-        <h1 style={{ marginBottom: "0.5rem", fontSize: "1.5rem" }}>Create your account</h1>
+    <main className="tp-auth-shell">
+      <div className="tp-auth-card">
+        <h1 className="tp-page-title">Create Your Account</h1>
         {invite.email && (
-          <p style={{ color: "var(--muted)", marginBottom: "1.5rem" }}>
+          <p className="tp-page-sub">
             This invite is for <strong>{invite.email}</strong>.
           </p>
         )}
