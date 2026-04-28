@@ -121,6 +121,11 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+
+    const scriptRl = await checkRateLimit(`chat:script:${session.user.id}`, 5, 60_000);
+    if (!scriptRl.allowed) {
+      return Response.json({ error: "Script rate limit exceeded." }, { status: 429 });
+    }
   }
 
   const prepared = await createPendingTurn(
@@ -160,11 +165,6 @@ export async function POST(request: Request) {
   });
 
   if (effectiveDecision.route === "script") {
-    const scriptRl = await checkRateLimit(`chat:script:${session.user.id}`, 5, 60_000);
-    if (!scriptRl.allowed) {
-      return Response.json({ error: "Script rate limit exceeded." }, { status: 429 });
-    }
-
     let scriptRun: Awaited<ReturnType<typeof executeScript>>;
     try {
       scriptRun = await executeScript({
