@@ -16,6 +16,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
+    "eventsource-parser": "^3.0.8",
     "ioredis": "^5.10.1",
     "iron-session": "^8.0.4",
     "next": "^15.0.0",

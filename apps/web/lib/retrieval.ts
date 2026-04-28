@@ -49,6 +49,8 @@ function deriveTitle(title: string | null, sourceName: string | null, text: stri
   return `${firstLine.slice(0, 69).trimEnd()}...`;
 }
 
+export const EMBEDDING_DIMENSIONS = 768;
+
 export function splitDocumentIntoChunks(
   text: string,
   targetWords = 220,
@@ -57,19 +59,92 @@ export function splitDocumentIntoChunks(
   const normalized = normalizeText(text);
   if (!normalized) return [];
 
-  const words = normalized.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
+  // Split into paragraphs on blank lines
+  const paragraphs = normalized.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  if (paragraphs.length === 0) return [];
 
   const chunks: string[] = [];
-  let index = 0;
+  let buffer: string[] = []; // accumulated paragraph strings
+  let bufferWordCount = 0;
 
-  while (index < words.length) {
-    const slice = words.slice(index, index + targetWords).join(" ").trim();
-    if (slice) chunks.push(slice);
-    if (index + targetWords >= words.length) break;
-    index += Math.max(1, targetWords - overlapWords);
+  function flush() {
+    if (buffer.length === 0) return;
+    chunks.push(buffer.join("\n\n").trim());
+    buffer = [];
+    bufferWordCount = 0;
   }
 
+  function wordCount(s: string): number {
+    return s.split(/\s+/).filter(Boolean).length;
+  }
+
+  for (const para of paragraphs) {
+    const paraWords = wordCount(para);
+
+    if (paraWords > targetWords) {
+      // Oversized paragraph: flush buffer first, then split at sentence boundaries.
+      // Falls back to word-based splitting when no sentence boundaries exist or a
+      // single sentence is itself larger than the target.
+      flush();
+      const sentences = para.split(/(?<=[.!?])\s+/);
+      let sentenceBuffer: string[] = [];
+      let sentenceWordCount = 0;
+
+      for (const sentence of sentences) {
+        const sw = wordCount(sentence);
+
+        if (sw > targetWords) {
+          // Single over-budget sentence: emit accumulated buffer then word-split this sentence
+          if (sentenceBuffer.length > 0) {
+            chunks.push(sentenceBuffer.join(" ").trim());
+            sentenceBuffer = [];
+            sentenceWordCount = 0;
+          }
+          const words = sentence.split(/\s+/).filter(Boolean);
+          let wi = 0;
+          while (wi < words.length) {
+            const slice = words.slice(wi, wi + targetWords).join(" ").trim();
+            if (slice) chunks.push(slice);
+            if (wi + targetWords >= words.length) break;
+            wi += Math.max(1, targetWords - overlapWords);
+          }
+          continue;
+        }
+
+        if (sentenceWordCount + sw > targetWords && sentenceBuffer.length > 0) {
+          chunks.push(sentenceBuffer.join(" ").trim());
+          // Overlap: carry last `overlapWords` words into next chunk
+          const all = sentenceBuffer.join(" ").split(/\s+/);
+          const overlap = all.slice(-overlapWords).join(" ");
+          sentenceBuffer = overlap ? [overlap] : [];
+          sentenceWordCount = wordCount(overlap);
+        }
+        sentenceBuffer.push(sentence);
+        sentenceWordCount += sw;
+      }
+      if (sentenceBuffer.length > 0) {
+        chunks.push(sentenceBuffer.join(" ").trim());
+      }
+      continue;
+    }
+
+    if (bufferWordCount + paraWords > targetWords && buffer.length > 0) {
+      // Flush current buffer, apply overlap from last chunk
+      flush();
+      // Overlap: carry last `overlapWords` words of the just-flushed chunk
+      const lastChunk = chunks[chunks.length - 1] ?? "";
+      const overlapText = lastChunk.split(/\s+/).slice(-overlapWords).join(" ");
+      if (overlapText) {
+        buffer = [overlapText];
+        bufferWordCount = wordCount(overlapText);
+      }
+    }
+
+    buffer.push(para);
+    bufferWordCount += paraWords;
+  }
+
+  flush();
   return chunks;
 }
 
@@ -165,29 +240,30 @@ export async function searchDocs(query: string, limit = 4): Promise<MessageCitat
   if (!queryEmbedding) return [];
 
   const rows = (await db.execute(sql`
+    with q as (select ${vectorLiteral(queryEmbedding)}::vector as vec)
     select
       dc.id as "chunkId",
       dc.document_id as "documentId",
       d.title as "documentTitle",
       dc.chunk_index as "chunkIndex",
       dc.content as "content",
-      1 - (dc.embedding <=> ${vectorLiteral(queryEmbedding)}::vector) as "score"
+      1 - (dc.embedding <=> q.vec) as "score"
     from document_chunks dc
+    cross join q
     inner join documents d on d.id = dc.document_id
-    order by dc.embedding <=> ${vectorLiteral(queryEmbedding)}::vector
+    where 1 - (dc.embedding <=> q.vec) > 0.1
+    order by dc.embedding <=> q.vec
     limit ${limit}
   `)) as SearchResultRow[];
 
-  return rows
-    .map((row) => ({
-      documentId: row.documentId,
-      documentTitle: row.documentTitle,
-      chunkId: row.chunkId,
-      chunkIndex: row.chunkIndex,
-      excerpt: excerpt(row.content),
-      score: Number(row.score),
-    }))
-    .filter((row) => Number.isFinite(row.score) && row.score > 0);
+  return rows.map((row) => ({
+    documentId: row.documentId,
+    documentTitle: row.documentTitle,
+    chunkId: row.chunkId,
+    chunkIndex: row.chunkIndex,
+    excerpt: excerpt(row.content),
+    score: Number(row.score),
+  }));
 }
 
 export function buildRetrievalSystemPrompt(citations: MessageCitation[]): string {
