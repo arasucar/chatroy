@@ -255,6 +255,7 @@ export async function executeScript(input: {
       {
         timeout: 10000,
         maxBuffer: 1024 * 1024,
+        env: { PATH: "/usr/local/bin:/usr/bin:/bin", NODE_ENV: process.env.NODE_ENV || "production" },
       },
       (error, stdout, stderr) => {
         if (!error) {
